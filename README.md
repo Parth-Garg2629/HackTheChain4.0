@@ -1,22 +1,22 @@
-# 🚀 ReliefSync — Disaster Relief Logistics System
+# ReliefSync
 
 ReliefSync is a real-time coordination platform designed for NGOs and emergency responders to manage logistics, volunteers, and SOS alerts during crises. Built for the **HackTheChain 4.0** hackathon.
 
-## 🌟 Key Features
+## Key Features
 
-- **🏠 Crisis Command Center**: A high-impact, real-time dashboard for Base Coordinators.
-- **🛰️ SOS Transmitter**: Field volunteers can broadcast geo-coded SOS signals with varying severity levels.
-- **📦 Tactical Inventory**: Real-time management of ambulances, medical kits, and supplies.
-- **🛡️ Conflict Detection**: Backend logic prevents double-booking of resources across different zones.
-- **⚡ Hot-Reactivity**: UI updates instantly via WebSockets (Socket.io) without page refreshes.
+- **Crisis Command Center**: A high-impact, real-time dashboard for Base Coordinators.
+- **SOS Transmitter**: Field volunteers can broadcast geo-coded SOS signals with varying severity levels.
+- **Tactical Inventory**: Real-time management of ambulances, medical kits, and supplies.
+- **Conflict Detection**: Backend logic prevents double-booking of resources across different zones.
+- **Hot-Reactivity**: UI updates instantly via WebSockets (Socket.io) without page refreshes.
 
-## 🛠️ Tech Stack
+## Tech Stack
 
 - **Frontend**: React 18, Vite, Tailwind CSS, Framer Motion, Zustand, Socket.io-client.
 - **Backend**: Node.js, Express, Socket.io, JWT Auth.
 - **Database**: MongoDB (via Mongoose).
 
-## 🚀 Quick Start
+## Quick Start
 
 ### 1. Prerequisites
 - Node.js (v18+)
@@ -37,7 +37,7 @@ npm install
 npm run dev
 ```
 
-## 🏗️ Architecture
+## Architecture
 
 ```
 /server
@@ -49,10 +49,3 @@ npm run dev
   /src/lib      # Socket.io & Axios config
   /src/pages    # Dashboard, Auth flow
 ```
-
-## 🎯 Winning Strategy
-
-ReliefSync addresses all three hackathon dimensions:
-1. **Dynamic Membership**: Zone-based registration and Admin/Volunteer RBAC.
-2. **Resource Orchestration**: Strict lock on transit-state resources to prevent conflicts.
-3. **Real-Time Interaction**: SOS alerts broadcasted via WebSockets for "Zero-Latency" triage.
