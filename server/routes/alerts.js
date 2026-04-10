@@ -1,11 +1,12 @@
 const express = require('express');
 const Alert = require('../models/Alert');
+const Task = require('../models/Task');
 const { protect, requireRole } = require('../middleware/auth');
 
 const router = express.Router();
 
-// @route POST /api/alerts  -  Volunteer sends SOS alert
-router.post('/', protect, requireRole('Volunteer'), async (req, res) => {
+// @route POST /api/alerts  -  Driver or Volunteer sends SOS alert
+router.post('/', protect, requireRole('Verified Driver', 'General Volunteer'), async (req, res) => {
   try {
     const { message, severity } = req.body;
 
@@ -20,18 +21,30 @@ router.post('/', protect, requireRole('Volunteer'), async (req, res) => {
       zone: req.user.zoneCode,
     });
 
+    // 🚀 AUTOMATION: Create a Critical Task for this SOS alert
+    const task = await Task.create({
+      title: `SOS: ${severity} Emergency`,
+      description: message,
+      location: `Zone: ${req.user.zoneCode} (Sent by ${req.user.name})`,
+      priority: severity === 'Critical' ? 'Critical' : 'Medium',
+      zoneCode: req.user.zoneCode,
+      linkedAlert: alert._id,
+    });
+
     const populated = await Alert.findById(alert._id).populate('sentBy', 'name zoneCode');
 
-    // 🚨 REAL-TIME BROADCAST: Emit to ALL Admin sockets immediately
-    req.io.to('Admin').emit('sos_alert', {
+    // 🚨 REAL-TIME BROADCAST: Emit to ALL Dispatcher sockets immediately
+    req.io.to('Dispatcher').emit('sos_alert', {
       alert: populated,
+      task, // Include the auto-created task
       timestamp: new Date().toISOString(),
     });
 
-    // Also emit globally so volunteer's own dashboard updates
+    // Also emit globally for boards
+    req.io.emit('task_created', task);
     req.io.emit('alert_created', populated);
 
-    res.status(201).json({ success: true, data: populated, message: 'SOS alert sent to base camp!' });
+    res.status(201).json({ success: true, data: populated, message: 'SOS alert sent and task created!' });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
@@ -62,8 +75,8 @@ router.get('/', protect, async (req, res) => {
   }
 });
 
-// @route PUT /api/alerts/:id/resolve  -  Admin resolves an alert
-router.put('/:id/resolve', protect, requireRole('Admin'), async (req, res) => {
+// @route PUT /api/alerts/:id/resolve  -  Dispatcher resolves an alert
+router.put('/:id/resolve', protect, requireRole('Dispatcher'), async (req, res) => {
   try {
     const alert = await Alert.findById(req.params.id);
     if (!alert) return res.status(404).json({ success: false, message: 'Alert not found' });

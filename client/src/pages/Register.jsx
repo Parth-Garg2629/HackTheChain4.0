@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Shield, Wifi, AlertTriangle, UserPlus } from 'lucide-react';
+import { Shield, Wifi, AlertTriangle, Activity, UserPlus } from 'lucide-react';
 import useAuthStore from '../store/authStore';
 import toast from 'react-hot-toast';
 
@@ -10,7 +10,7 @@ export default function Register() {
   const [form, setForm] = useState({ 
     name: '', 
     zoneCode: '', 
-    role: 'Volunteer', 
+    role: 'General Volunteer', 
     password: '' 
   });
 
@@ -20,110 +20,82 @@ export default function Register() {
     e.preventDefault();
     const result = await register(form);
     if (result.success) {
-      toast.success('Registration successful! Protocol initialized.');
+      toast.success('Node Initialized. Welcome to CrisisGrid.');
       navigate('/dashboard');
     } else {
       toast.error(result.message);
     }
   };
 
+  const roles = [
+    { title: 'Dispatcher', desc: 'Strategy & Coordination', icon: Shield },
+    { title: 'Verified Driver', desc: 'Fleet & Vehicle Operations', icon: Activity },
+    { title: 'General Volunteer', desc: 'Tactical On-Ground Support', icon: UserPlus },
+  ];
+
   return (
-    <div className="min-h-screen flex items-center justify-center px-4">
+    <div className="min-h-screen flex items-center justify-center px-4 py-20 lg:py-0">
       <div className="fixed top-0 left-1/2 -translate-x-1/2 w-[600px] h-[300px] bg-crisis-primary/10 rounded-full blur-[100px] pointer-events-none" />
 
-      <div className="w-full max-w-md animate-fade-in py-10">
+      <div className="w-full max-w-xl animate-fade-in">
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-crisis-primary/20 border border-crisis-primary/30 mb-4">
-            <UserPlus className="w-8 h-8 text-crisis-glow" />
-          </div>
-          <h1 className="text-3xl font-bold text-white">ReliefSync</h1>
-          <p className="text-slate-400 mt-1 text-sm">Join the response network</p>
+          <Activity className="w-12 h-12 text-crisis-glow mx-auto mb-4" />
+          <h1 className="text-3xl font-bold text-white tracking-tight">CrisisGrid Node Initialization</h1>
+          <p className="text-slate-400 mt-1 text-sm">Register as a responder and sync with your local zone</p>
         </div>
 
         <div className="card">
-          <h2 className="text-lg font-semibold text-white mb-1">Enlist Responder</h2>
-          <p className="text-slate-400 text-sm mb-6">Create your credentials to join the coordination grid</p>
-
-          {error && (
-            <div className="flex items-center gap-2 bg-red-500/10 border border-red-500/30 rounded-lg px-4 py-3 mb-4">
-              <AlertTriangle className="w-4 h-4 text-red-400 flex-shrink-0" />
-              <p className="text-red-400 text-sm">{error}</p>
-            </div>
-          )}
-
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="text-xs font-medium text-slate-400 uppercase tracking-wider mb-1.5 block">
-                Full Name
-              </label>
-              <input
-                name="name"
-                type="text"
-                placeholder="Full Name"
-                className="input"
-                value={form.name}
-                onChange={handleChange}
-                required
-              />
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="grid md:grid-cols-2 gap-4">
+              <div>
+                <label className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1.5 block">Operator Name</label>
+                <input name="name" type="text" placeholder="Full Name" className="input" value={form.name} onChange={handleChange} required />
+              </div>
+              <div>
+                <label className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1.5 block">Assignment Zone</label>
+                <input name="zoneCode" type="text" placeholder="RJ-KOTA-01" className="input font-mono uppercase" value={form.zoneCode} onChange={handleChange} required />
+              </div>
             </div>
 
             <div>
-              <label className="text-xs font-medium text-slate-400 uppercase tracking-wider mb-1.5 block">
-                Deployment Role
-              </label>
-              <select
-                name="role"
-                className="input cursor-pointer"
-                value={form.role}
-                onChange={handleChange}
-              >
-                <option value="Volunteer">Field Volunteer</option>
-                <option value="Admin">Base Coordinator (Admin)</option>
-              </select>
+              <label className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3 block">Operational Role Selection</label>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                {roles.map((r) => (
+                  <button
+                    key={r.title}
+                    type="button"
+                    onClick={() => setForm({ ...form, role: r.title })}
+                    className={`p-3 rounded-xl border text-left transition-all ${
+                      form.role === r.title 
+                      ? 'bg-crisis-primary/20 border-crisis-primary border-2' 
+                      : 'bg-crisis-bg border-crisis-border hover:border-crisis-primary/30'
+                    }`}
+                  >
+                    <r.icon className={`w-5 h-5 mb-2 ${form.role === r.title ? 'text-crisis-glow' : 'text-slate-500'}`} />
+                    <div className="text-xs font-bold text-white leading-tight">{r.title}</div>
+                    <div className="text-[10px] text-slate-500 mt-0.5 leading-tight">{r.desc}</div>
+                  </button>
+                ))}
+              </div>
             </div>
 
             <div>
-              <label className="text-xs font-medium text-slate-400 uppercase tracking-wider mb-1.5 block">
-                Zone Code
-              </label>
-              <input
-                name="zoneCode"
-                type="text"
-                placeholder="STATE-CITY-##"
-                className="input font-mono uppercase"
-                value={form.zoneCode}
-                onChange={handleChange}
-                required
-              />
-              <p className="text-xs text-slate-500 mt-1">Example: RJ-KOTA-01 or MH-MUM-02</p>
+              <label className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1.5 block">Access Secret</label>
+              <input name="password" type="password" placeholder="Create a strong key" className="input" value={form.password} onChange={handleChange} required />
             </div>
 
-            <div>
-              <label className="text-xs font-medium text-slate-400 uppercase tracking-wider mb-1.5 block">
-                Secure Password
-              </label>
-              <input
-                name="password"
-                type="password"
-                placeholder="Minimum 6 characters"
-                className="input"
-                value={form.password}
-                onChange={handleChange}
-                required
-                minLength={6}
-              />
-            </div>
-
-            <button type="submit" className="btn-primary w-full justify-center mt-2" disabled={loading}>
-              {loading ? 'Initializing Protocol...' : 'Register Responder'}
+            <button type="submit" className="btn-primary w-full justify-center group py-3" disabled={loading}>
+              {loading ? (
+                <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+              ) : (
+                'Initialize Node Integration'
+              )}
             </button>
           </form>
 
-          <p className="text-center text-slate-400 text-sm mt-5">
-            Already enlisted?{' '}
-            <Link to="/login" className="text-crisis-glow hover:underline font-medium">
-              Access Base
-            </Link>
+          <p className="text-center text-slate-500 text-sm mt-6">
+            Already integrated?{' '}
+            <Link to="/login" className="text-crisis-glow hover:underline font-bold">Sync Entry</Link>
           </p>
         </div>
       </div>

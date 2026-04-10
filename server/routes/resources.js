@@ -16,8 +16,8 @@ router.get('/', protect, async (req, res) => {
   }
 });
 
-// @route POST /api/resources  -  Admin only: add a resource
-router.post('/', protect, requireRole('Admin'), async (req, res) => {
+// @route POST /api/resources  -  Dispatcher only: add a resource
+router.post('/', protect, requireRole('Dispatcher'), async (req, res) => {
   try {
     const { name, type, quantity, notes } = req.body;
     if (!name || !type) {
@@ -34,8 +34,8 @@ router.post('/', protect, requireRole('Admin'), async (req, res) => {
   }
 });
 
-// @route PUT /api/resources/:id/request  -  Volunteer requests a resource
-router.put('/:id/request', protect, requireRole('Volunteer'), async (req, res) => {
+// @route PUT /api/resources/:id/request  -  Driver requests a resource
+router.put('/:id/request', protect, requireRole('Verified Driver'), async (req, res) => {
   try {
     const resource = await Resource.findById(req.params.id);
 
@@ -44,7 +44,7 @@ router.put('/:id/request', protect, requireRole('Volunteer'), async (req, res) =
     }
 
     // ⚠️ CONFLICT DETECTION: Core Logic
-    if (['Requested', 'In Transit', 'Allocated'].includes(resource.status)) {
+    if (['Requested', 'In Transit', 'In Use', 'Maintenance', 'Allocated'].includes(resource.status)) {
       return res.status(409).json({
         success: false,
         message: `CONFLICT: Resource "${resource.name}" is already ${resource.status}. Cannot fulfill this request.`,
@@ -59,8 +59,8 @@ router.put('/:id/request', protect, requireRole('Volunteer'), async (req, res) =
 
     const updated = await Resource.findById(resource._id).populate('assignedTo', 'name zoneCode');
 
-    // Real-time broadcast to all Admin sockets
-    req.io.to('Admin').emit('resource_updated', {
+    // Real-time broadcast to all Dispatcher sockets
+    req.io.to('Dispatcher').emit('resource_updated', {
       action: 'requested',
       resource: updated,
       requestedBy: { name: req.user.name, zone: req.user.zoneCode },
@@ -72,8 +72,8 @@ router.put('/:id/request', protect, requireRole('Volunteer'), async (req, res) =
   }
 });
 
-// @route PUT /api/resources/:id/approve  -  Admin approves/dispatches resource
-router.put('/:id/approve', protect, requireRole('Admin'), async (req, res) => {
+// @route PUT /api/resources/:id/approve  -  Dispatcher approves/dispatches resource
+router.put('/:id/approve', protect, requireRole('Dispatcher'), async (req, res) => {
   try {
     const resource = await Resource.findById(req.params.id).populate('assignedTo', 'name zoneCode');
 
@@ -124,8 +124,8 @@ router.put('/:id/return', protect, async (req, res) => {
   }
 });
 
-// @route DELETE /api/resources/:id  -  Admin only
-router.delete('/:id', protect, requireRole('Admin'), async (req, res) => {
+// @route DELETE /api/resources/:id  -  Dispatcher only
+router.delete('/:id', protect, requireRole('Dispatcher'), async (req, res) => {
   try {
     const resource = await Resource.findByIdAndDelete(req.params.id);
     if (!resource) return res.status(404).json({ success: false, message: 'Resource not found' });
