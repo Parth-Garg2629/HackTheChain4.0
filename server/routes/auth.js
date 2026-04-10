@@ -79,10 +79,10 @@ router.get('/me', protect, (req, res) => {
   res.json({ success: true, user: req.user });
 });
 
-// @route GET /api/auth/responders  (Dispatcher only - get all drivers and volunteers)
+// @route GET /api/auth/responders (To fetch all active responders)
 router.get('/responders', protect, async (req, res) => {
   try {
-    const responders = await User.find({ role: { $in: ['Verified Driver', 'General Volunteer'] } }).select('-password').sort('-createdAt');
+    const responders = await User.find({ role: 'General Volunteer' }).select('-password').sort('-createdAt');
     res.json({ success: true, data: responders });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });

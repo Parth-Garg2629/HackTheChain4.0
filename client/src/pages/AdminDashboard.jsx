@@ -16,19 +16,22 @@ import {
   Filter,
   Globe,
   Map,
-  ClipboardList
+  ClipboardList,
+  MessageSquare
 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import ChatPanel from '../components/ChatPanel';
 
 export default function AdminDashboard() {
   const { user } = useAuthStore();
   const { alerts, resolveAlert } = useAlertStore();
   const { resources, addResource, approveResource, deleteResource } = useResourceStore();
-  const { tasks, fetchTasks, createTask, completeTask } = useTaskStore();
+  const { tasks, fetchTasks, createTask, claimTask, completeTask } = useTaskStore();
   
   const [viewScope, setViewScope] = useState('regional'); // 'regional' or 'global'
   const [showAddTask, setShowAddTask] = useState(false);
   const [showAddResource, setShowAddResource] = useState(false);
+  const [activeChatTask, setActiveChatTask] = useState(null);
   
   const [newTask, setNewTask] = useState({ title: '', description: '', location: '', priority: 'Low', zoneCode: user?.zoneCode });
   const [newResource, setNewResource] = useState({ name: '', type: 'Other', notes: '' });
@@ -61,11 +64,16 @@ export default function AdminDashboard() {
     }
   };
 
+  // Filter data based on viewScope for UI components
+  const displayTasks = tasks; // fetchTasks already handles this in the store
+  const displayAlerts = viewScope === 'regional' ? alerts.filter(a => a.zone === user?.zoneCode) : alerts;
+  const displayResources = viewScope === 'regional' ? resources.filter(r => r.assignedZone === user?.zoneCode || r.status === 'Available') : resources;
+
   const stats = [
-    { label: 'Unclaimed Tasks', value: tasks.filter(t => t.status === 'Open').length, icon: ClipboardList, color: 'text-amber-400' },
-    { label: 'Active SOS', value: alerts.filter(a => !a.isResolved).length, icon: AlertCircle, color: 'text-red-400' },
-    { label: 'Fleet in Transit', value: resources.filter(r => ['In Transit', 'In Use'].includes(r.status)).length, icon: Truck, color: 'text-blue-400' },
-    { label: 'Operational Nodes', value: resources.filter(r => r.status === 'Available').length, icon: Package, color: 'text-green-400' },
+    { label: 'Unclaimed Tasks', value: displayTasks.filter(t => t.status === 'Open').length, icon: ClipboardList, color: 'text-amber-400' },
+    { label: 'Active SOS', value: displayAlerts.filter(a => !a.isResolved).length, icon: AlertCircle, color: 'text-red-400' },
+    { label: 'Fleet in Transit', value: displayResources.filter(r => ['In Transit', 'In Use'].includes(r.status)).length, icon: Truck, color: 'text-blue-400' },
+    { label: 'Operational Nodes', value: displayResources.filter(r => r.status === 'Available').length, icon: Package, color: 'text-green-400' },
   ];
 
   return (
@@ -75,9 +83,9 @@ export default function AdminDashboard() {
         <div>
           <h1 className="text-2xl font-bold text-white flex items-center gap-2">
             <Activity className="w-6 h-6 text-crisis-glow" />
-            CrisisGrid Operations Command
+            Volunteer Operations Command
           </h1>
-          <p className="text-slate-400 text-sm">Real-time intelligence and fleet coordination across the grid</p>
+          <p className="text-slate-400 text-sm">Strategic mission management and resource orchestration</p>
         </div>
         
         <div className="flex flex-wrap items-center gap-2">
@@ -169,10 +177,10 @@ export default function AdminDashboard() {
           </div>
 
           <div className="grid md:grid-cols-2 gap-4">
-            {tasks.length === 0 ? (
+            {displayTasks.length === 0 ? (
               <div className="card md:col-span-2 text-center py-10 text-slate-500 italic text-sm">No tasks currently registered.</div>
             ) : (
-              tasks.map((task) => (
+              displayTasks.map((task) => (
                 <div key={task._id} className={`card p-4 border-l-4 transition-all ${
                   task.status === 'Completed' ? 'opacity-50 border-l-slate-600' :
                   task.priority === 'Critical' ? 'border-l-red-500 bg-red-500/5' : 
@@ -189,6 +197,14 @@ export default function AdminDashboard() {
                      }`}>
                        {task.status}
                      </span>
+                     {task.status === 'Open' && (
+                        <button 
+                          onClick={() => claimTask(task._id)}
+                          className="text-[10px] font-bold bg-green-500/20 text-green-400 px-3 py-1 rounded hover:bg-green-500/30 transition-colors"
+                        >
+                          CLAIM MISSION
+                        </button>
+                      )}
                   </div>
                   <h4 className="text-white font-bold text-base mb-1">{task.title}</h4>
                   <p className="text-slate-400 text-xs line-clamp-2 mb-3">{task.description}</p>
@@ -200,9 +216,25 @@ export default function AdminDashboard() {
                        <span className="bg-crisis-border/50 px-1 rounded font-mono uppercase">{task.zoneCode}</span>
                     </div>
                     {task.status === 'Claimed' && (
-                      <div className="text-[10px] text-blue-400 font-bold flex items-center gap-1">
-                        <Users className="w-3 h-3" />
-                        {task.assignedTo?.name}
+                      <div className="flex items-center gap-3">
+                        <div className="text-[10px] text-blue-400 font-bold flex items-center gap-1">
+                          <Users className="w-3 h-3" />
+                          {task.assignedTo?.name}
+                        </div>
+                        <button 
+                          onClick={() => setActiveChatTask({ id: task._id, title: task.title })}
+                          className="text-[10px] bg-crisis-primary/20 text-crisis-glow px-2 py-1 rounded hover:bg-crisis-primary/30 transition-colors flex items-center gap-1"
+                        >
+                          <MessageSquare className="w-3 h-3" /> Comms
+                        </button>
+                        {task.assignedTo?._id === user?.id && (
+                          <button 
+                            onClick={() => completeTask(task._id)}
+                            className="text-[10px] bg-green-500/10 text-green-400 border border-green-500/30 px-2 py-1 rounded hover:bg-green-500/20 transition-colors"
+                          >
+                            Finish
+                          </button>
+                        )}
                       </div>
                     )}
                   </div>
@@ -260,7 +292,7 @@ export default function AdminDashboard() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-crisis-border/30">
-                    {resources.map((resource) => (
+                    {displayResources.map((resource) => (
                         <tr key={resource._id} className="hover:bg-crisis-primary/5 transition-colors group">
                           <td className="px-5 py-3 text-sm font-semibold text-white">{resource.name}</td>
                           <td className="px-5 py-3 text-xs text-slate-400">{resource.type}</td>
@@ -295,11 +327,11 @@ export default function AdminDashboard() {
               <AlertCircle className="w-4 h-4" />
               Intelligence Ticker
            </h2>
-           <div className="space-y-3 max-h-[800px] overflow-y-auto custom-scrollbar">
-              {alerts.length === 0 ? (
+            <div className="space-y-3 max-h-[800px] overflow-y-auto custom-scrollbar">
+              {displayAlerts.length === 0 ? (
                 <div className="p-10 text-center text-slate-600 italic text-xs">Waiting for incoming signal...</div>
               ) : (
-                alerts.map((alert) => (
+                displayAlerts.map((alert) => (
                   <div key={alert._id} className={`card p-4 border-l-4 transition-all ${alert.isResolved ? 'opacity-40 grayscale' : alert.severity === 'Critical' ? 'border-l-red-500 animate-pulse-subtle' : 'border-l-amber-500'}`}>
                     <div className="flex justify-between items-start mb-2">
                        <span className={`badge-${alert.severity.toLowerCase()}`}>SOS {alert.severity}</span>
@@ -319,6 +351,25 @@ export default function AdminDashboard() {
         </div>
 
       </div>
+      {/* Chat Overlay */}
+      {activeChatTask && (
+        <div className="fixed inset-0 z-50 flex items-center justify-end p-6 bg-black/40 backdrop-blur-sm">
+          <div className="w-full max-w-md animate-slide-in">
+            <div className="bg-crisis-bg border border-crisis-border rounded-2xl shadow-2xl">
+              <div className="flex justify-end p-2">
+                <button onClick={() => setActiveChatTask(null)} className="p-2 text-slate-500 hover:text-white transition-colors">
+                  <ClipboardList className="w-5 h-5" />
+                </button>
+              </div>
+              <ChatPanel 
+                taskId={activeChatTask.id} 
+                missionTitle={activeChatTask.title} 
+                isCompleted={tasks.find(t => t._id === activeChatTask.id)?.status === 'Completed'}
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

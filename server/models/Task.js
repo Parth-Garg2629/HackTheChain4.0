@@ -20,6 +20,11 @@ const taskSchema = new mongoose.Schema(
       ref: 'User',
       default: null,
     },
+    victim: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      default: null,
+    },
     zoneCode: {
       type: String,
       required: true,

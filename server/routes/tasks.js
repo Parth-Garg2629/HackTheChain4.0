@@ -20,8 +20,8 @@ router.get('/', protect, async (req, res) => {
   }
 });
 
-// @route POST /api/tasks  -  Dispatcher only: create a task
-router.post('/', protect, requireRole('Dispatcher'), async (req, res) => {
+// @route POST /api/tasks  -  Volunteer only: create a task
+router.post('/', protect, requireRole('General Volunteer'), async (req, res) => {
   try {
     const { title, description, location, priority, zoneCode } = req.body;
     if (!title || !location || !zoneCode) {
@@ -45,8 +45,8 @@ router.post('/', protect, requireRole('Dispatcher'), async (req, res) => {
   }
 });
 
-// @route PUT /api/tasks/:id/claim  -  Driver or Volunteer claims a task
-router.put('/:id/claim', protect, requireRole('Verified Driver', 'General Volunteer'), async (req, res) => {
+// @route PUT /api/tasks/:id/claim  -  Volunteer claims a task
+router.put('/:id/claim', protect, requireRole('General Volunteer'), async (req, res) => {
   try {
     const task = await Task.findById(req.params.id);
 
@@ -84,8 +84,8 @@ router.put('/:id/complete', protect, async (req, res) => {
     const task = await Task.findById(req.params.id);
     if (!task) return res.status(404).json({ success: false, message: 'Task not found' });
 
-    // Only allow dispatcher or the assigned user to complete
-    if (req.user.role !== 'Dispatcher' && task.assignedTo?.toString() !== req.user._id.toString()) {
+    // Only allow global admins (Volunteer) or the assigned user to complete
+    if (req.user.role !== 'General Volunteer' && task.assignedTo?.toString() !== req.user._id.toString()) {
       return res.status(403).json({ success: false, message: 'Not authorized to complete this task' });
     }
 

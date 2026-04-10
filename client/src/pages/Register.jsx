@@ -28,9 +28,8 @@ export default function Register() {
   };
 
   const roles = [
-    { title: 'Dispatcher', desc: 'Strategy & Coordination', icon: Shield },
-    { title: 'Verified Driver', desc: 'Fleet & Vehicle Operations', icon: Activity },
-    { title: 'General Volunteer', desc: 'Tactical On-Ground Support', icon: UserPlus },
+    { title: 'Victim', desc: 'Need Immediate SOS Assistance', icon: AlertTriangle },
+    { title: 'General Volunteer', desc: 'Resource & Task Management', icon: Shield },
   ];
 
   return (

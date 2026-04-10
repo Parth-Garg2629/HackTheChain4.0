@@ -5,8 +5,8 @@ const { protect, requireRole } = require('../middleware/auth');
 
 const router = express.Router();
 
-// @route POST /api/alerts  -  Driver or Volunteer sends SOS alert
-router.post('/', protect, requireRole('Verified Driver', 'General Volunteer'), async (req, res) => {
+// @route POST /api/alerts  -  Victim sends SOS alert
+router.post('/', protect, requireRole('Victim', 'General Volunteer'), async (req, res) => {
   try {
     const { message, severity } = req.body;
 
@@ -29,12 +29,13 @@ router.post('/', protect, requireRole('Verified Driver', 'General Volunteer'), a
       priority: severity === 'Critical' ? 'Critical' : 'Medium',
       zoneCode: req.user.zoneCode,
       linkedAlert: alert._id,
+      victim: req.user._id, // LINK THE VICTIM
     });
 
     const populated = await Alert.findById(alert._id).populate('sentBy', 'name zoneCode');
 
-    // 🚨 REAL-TIME BROADCAST: Emit to ALL Dispatcher sockets immediately
-    req.io.to('Dispatcher').emit('sos_alert', {
+    // 🚨 REAL-TIME BROADCAST: Emit to ALL General Volunteer sockets immediately
+    req.io.to('General Volunteer').emit('sos_alert', {
       alert: populated,
       task, // Include the auto-created task
       timestamp: new Date().toISOString(),
@@ -75,8 +76,8 @@ router.get('/', protect, async (req, res) => {
   }
 });
 
-// @route PUT /api/alerts/:id/resolve  -  Dispatcher resolves an alert
-router.put('/:id/resolve', protect, requireRole('Dispatcher'), async (req, res) => {
+// @route PUT /api/alerts/:id/resolve  -  Volunteer resolves an alert
+router.put('/:id/resolve', protect, requireRole('General Volunteer'), async (req, res) => {
   try {
     const alert = await Alert.findById(req.params.id);
     if (!alert) return res.status(404).json({ success: false, message: 'Alert not found' });
