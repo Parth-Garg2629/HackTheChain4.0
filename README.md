@@ -49,3 +49,4 @@ npm run dev
   /src/lib      # Socket.io & Axios config
   /src/pages    # Dashboard, Auth flow
 ```
+UI Improved
