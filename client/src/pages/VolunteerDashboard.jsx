@@ -10,29 +10,36 @@ import {
   MapPin, 
   Navigation, 
   ShieldAlert, 
+  Shield,
   Clock,
   ClipboardCheck,
-  Truck
+  Truck,
+  Activity,
+  MessageSquare,
+  AlertTriangle,
+  CheckCircle,
+  ShieldCheck
 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import ChatPanel from '../components/ChatPanel';
 
 export default function VolunteerDashboard() {
   const { user } = useAuthStore();
-  const { createAlert } = useAlertStore();
-  const { resources, requestResource, returnResource } = useResourceStore();
-  const { tasks, claimTask, completeTask } = useTaskStore();
+  const { alerts, sendSOS } = useAlertStore();
+  const { tasks } = useTaskStore();
   
   const [sosMessage, setSosMessage] = useState('');
-  const [sosSeverity, setSosSeverity] = useState('Medium');
+  const [sosSeverity, setSosSeverity] = useState('Critical');
   const [loading, setLoading] = useState(false);
+  const [activeChatTask, setActiveChatTask] = useState(null);
 
   const handleSendSOS = async (e) => {
     e.preventDefault();
     if (!sosMessage) return;
     setLoading(true);
-    const res = await createAlert({ message: sosMessage, severity: sosSeverity });
+    const res = await sendSOS({ message: sosMessage, severity: sosSeverity });
     if (res.success) {
-      toast.success('SOS Broadcasted to Base Camp');
+      toast.success('SOS Broadcasted. Help is coordinating.');
       setSosMessage('');
     } else {
       toast.error(res.message);
@@ -40,155 +47,182 @@ export default function VolunteerDashboard() {
     setLoading(false);
   };
 
-  const handleClaim = async (taskId) => {
-    const res = await claimTask(taskId);
-    if (res.success) {
-      toast.success('Task Claimed. Check Navigation.');
-    } else if (res.isConflict) {
-      toast.error('Task already claimed by another responder.');
-    } else {
-      toast.error(res.message);
-    }
-  };
-
-  const myTasks = tasks.filter(t => t.assignedTo?._id === user?.id && t.status !== 'Completed');
-  const availableTasks = tasks.filter(t => t.status === 'Open' && t.zoneCode === user?.zoneCode);
-  const myResources = resources.filter(r => r.assignedTo?._id === user?.id);
+  // Find tasks where THIS user is the victim
+  const myDistressMissions = tasks.filter(t => t.victim?.toString() === user?.id || t.victim?._id === user?.id);
+  const myAlerts = alerts.filter(a => a.sentBy?._id === user?.id || a.sentBy === user?.id);
 
   return (
-    <div className="space-y-6 animate-fade-in pb-20">
+    <div className="max-w-4xl mx-auto space-y-8 animate-fade-in pb-20">
       
-      {/* Role Banner */}
-      <div className="flex items-center justify-between p-4 bg-crisis-card rounded-xl border border-crisis-border">
-         <div className="flex items-center gap-3">
-            <div className={`p-2 rounded-lg ${user?.role === 'Verified Driver' ? 'bg-blue-500/10 text-blue-400' : 'bg-green-500/10 text-green-400'}`}>
-               {user?.role === 'Verified Driver' ? <Truck className="w-6 h-6" /> : <Zap className="w-6 h-6" />}
-            </div>
-            <div>
-               <h2 className="text-white font-bold leading-tight">{user?.name}</h2>
-               <p className="text-slate-400 text-xs flex items-center gap-1">
-                  <span className="w-1.5 h-1.5 rounded-full bg-green-500"></span>
-                  Responder: {user?.role} • {user?.zoneCode}
-               </p>
-            </div>
-         </div>
-         <div className="hidden md:flex flex-col items-end">
-            <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Active Status</span>
-            <span className="text-xs text-white font-mono">SIGNAL STABLE</span>
-         </div>
+      {/* Emergency Header */}
+      <div className="text-center space-y-2">
+        <div className="inline-flex items-center gap-2 px-3 py-1 bg-red-500/10 border border-red-500/20 rounded-full text-red-500 text-[10px] font-bold uppercase tracking-widest animate-pulse">
+          <Zap className="w-3 h-3 fill-red-500" />
+          Emergency Distress Channel Active
+        </div>
+        <h1 className="text-4xl font-extrabold text-white tracking-tight">How can we help you?</h1>
+        <p className="text-slate-400">Your location is being broadcasted to all active responders in {user?.zoneCode}</p>
       </div>
 
-      <div className="grid lg:grid-cols-2 gap-6">
+      <div className="grid md:grid-cols-5 gap-8">
         
-        {/* Task Board */}
-        <div className="space-y-4">
-          <h3 className="text-sm font-bold text-slate-400 uppercase tracking-tighter flex items-center gap-2">
-            <ClipboardCheck className="w-4 h-4" />
-            Available Mission Tasks
-          </h3>
+        {/* SOS Transmitter (Left side) */}
+        <div className="md:col-span-3 space-y-6">
+          <div className="card border-red-500/30 bg-red-500/5 p-6 shadow-2xl shadow-red-500/5">
+            <h3 className="text-lg font-bold text-red-400 mb-6 flex items-center gap-2">
+              <ShieldAlert className="w-6 h-6" />
+              Transmit SOS Signal
+            </h3>
+            <form onSubmit={handleSendSOS} className="space-y-6">
+              <div>
+                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2 block">Situation Report</label>
+                <textarea 
+                  className="input min-h-[150px] border-red-500/20 focus:border-red-500/50 text-lg placeholder:text-slate-600" 
+                  placeholder="Describe your emergency (e.g., 'Stuck on roof, water rising, 3 people with me')" 
+                  value={sosMessage} 
+                  onChange={(e) => setSosMessage(e.target.value)}
+                  required
+                />
+              </div>
 
-          <div className="space-y-3">
-             {availableTasks.length === 0 ? (
-               <div className="card text-center py-10 text-slate-500 italic text-sm">No tasks in your zone.</div>
-             ) : (
-               availableTasks.map(task => (
-                 <div key={task._id} className={`card p-4 border-l-4 transition-all hover:scale-[1.01] ${task.priority === 'Critical' ? 'border-l-red-500 bg-red-500/5' : 'border-l-crisis-glow'}`}>
-                    <div className="flex justify-between items-start mb-2">
-                       <span className={`badge-${task.priority.toLowerCase()}`}>{task.priority} Priority</span>
-                       <button onClick={() => handleClaim(task._id)} className="text-[10px] font-bold bg-crisis-primary px-3 py-1 rounded text-white">
-                         CLAIM
-                       </button>
-                    </div>
-                    <h4 className="text-white font-bold mb-1">{task.title}</h4>
-                    <div className="flex items-center gap-4 text-[10px] text-slate-400 font-medium">
-                       <span className="flex items-center gap-1"><MapPin className="w-3 h-3 text-crisis-glow" /> {task.location}</span>
-                       <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> Just Posted</span>
-                    </div>
-                 </div>
-               ))
-             )}
+              <div className="flex flex-col sm:flex-row gap-4">
+                <div className="flex-1">
+                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2 block">Severity Level</label>
+                  <div className="grid grid-cols-3 gap-2">
+                    {['Low', 'Medium', 'Critical'].map((s) => (
+                      <button
+                        key={s}
+                        type="button"
+                        onClick={() => setSosSeverity(s)}
+                        className={`py-2 text-xs font-bold rounded-lg border transition-all ${
+                          sosSeverity === s 
+                          ? 'bg-red-600 border-red-500 text-white shadow-lg shadow-red-600/20' 
+                          : 'bg-crisis-bg border-crisis-border text-slate-500 hover:border-red-500/30'
+                        }`}
+                      >
+                        {s}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <button 
+                  type="submit" 
+                  disabled={loading || !sosMessage} 
+                  className="btn-primary bg-red-600 hover:bg-red-500 h-auto py-0 px-10 text-xl font-black italic tracking-tighter shadow-xl shadow-red-600/20 disabled:opacity-50"
+                >
+                  {loading ? 'SENDING...' : 'SEND SOS'}
+                </button>
+              </div>
+            </form>
           </div>
 
-          {myTasks.length > 0 && (
-            <div className="pt-4 space-y-3">
-              <h3 className="text-sm font-bold text-crisis-glow uppercase tracking-tighter flex items-center gap-2">
-                <Navigation className="w-4 h-4" />
-                Active Deployments
-              </h3>
-              {myTasks.map(task => (
-                <div key={task._id} className="card p-4 border-l-4 border-l-blue-500 bg-blue-500/5">
-                   <div className="flex justify-between items-start mb-2">
-                      <span className="text-[10px] uppercase font-bold text-blue-400 bg-blue-400/10 px-2 py-0.5 rounded">IN PROGRESS</span>
-                      <button onClick={() => completeTask(task._id)} className="text-[10px] font-bold text-green-400 border border-green-400/30 px-3 py-1 rounded">
-                        COMPLETE
-                      </button>
-                   </div>
-                   <h4 className="text-white font-bold mb-1">{task.title}</h4>
-                   <p className="text-xs text-slate-400 mb-3">{task.description}</p>
-                   <div className="flex items-center gap-2 text-[10px] text-slate-500 font-bold uppercase">
-                      <MapPin className="w-3 h-3" /> {task.location}
-                   </div>
+          {/* Active Missions / Alerts */}
+          <div className="space-y-4">
+            <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
+              <Clock className="w-4 h-4" />
+              Your Active Signals
+            </h3>
+            <div className="space-y-3">
+              {myAlerts.length === 0 ? (
+                <div className="p-12 text-center border-2 border-dashed border-crisis-border rounded-2xl opacity-30">
+                  <p className="text-sm font-bold uppercase tracking-widest">No active distress signals</p>
                 </div>
-              ))}
+              ) : (
+                myAlerts.map(alert => {
+                  const linkedTask = myDistressMissions.find(t => t.linkedAlert === alert._id);
+                  return (
+                    <div key={alert._id} className="card p-5 border-l-4 border-l-red-500 bg-crisis-card/50">
+                      <div className="flex justify-between items-start mb-3">
+                        <div className="flex items-center gap-2">
+                           <span className="badge-critical text-[10px]">SOS ACTIVE</span>
+                           <span className="text-[10px] text-slate-500 font-mono italic">{new Date(alert.createdAt).toLocaleString()}</span>
+                        </div>
+                        {linkedTask?.status === 'Claimed' && (
+                          <div className="flex items-center gap-1.5 px-2 py-1 bg-blue-500/10 rounded-full border border-blue-500/20">
+                             <div className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse" />
+                             <span className="text-[10px] font-bold text-blue-400 uppercase">Responder Dispatched</span>
+                          </div>
+                        )}
+                      </div>
+                      <p className="text-white text-sm mb-4 leading-relaxed">{alert.message}</p>
+                      
+                      {linkedTask && (
+                        <div className="flex items-center justify-between pt-4 border-t border-crisis-border/30">
+                          <div className="flex items-center gap-2">
+                            <div className="w-8 h-8 rounded-full bg-crisis-primary/20 flex items-center justify-center">
+                               <Navigation className="w-4 h-4 text-crisis-glow" />
+                            </div>
+                            <div>
+                               <p className="text-[10px] font-bold text-slate-500 uppercase leading-none">Status</p>
+                               <p className="text-xs text-white font-bold">{linkedTask.status === 'Open' ? 'Awaiting Volunteer' : linkedTask.status === 'Claimed' ? `Assigned to ${linkedTask.assignedTo?.name}` : 'Mission Complete'}</p>
+                            </div>
+                          </div>
+                          
+                          {linkedTask.status === 'Claimed' && (
+                            <button 
+                              onClick={() => setActiveChatTask({ id: linkedTask._id, title: "Responder Comms" })}
+                              className="flex items-center gap-2 bg-crisis-primary text-white px-4 py-2 rounded-xl text-xs font-bold hover:bg-crisis-glow transition-all shadow-lg shadow-crisis-primary/20"
+                            >
+                              <MessageSquare className="w-4 h-4" />
+                              TALK TO RESPONDER
+                            </button>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Chat / Sidebar area */}
+        <div className="md:col-span-2">
+          {activeChatTask ? (
+            <div className="sticky top-6">
+               <ChatPanel 
+                  taskId={activeChatTask.id} 
+                  missionTitle={activeChatTask.title} 
+                  isCompleted={tasks.find(t => t._id === activeChatTask.id)?.status === 'Completed'}
+               />
+               <button 
+                 onClick={() => setActiveChatTask(null)}
+                 className="w-full mt-4 py-2 text-xs font-bold text-slate-500 hover:text-white uppercase tracking-widest transition-colors"
+               >
+                 Close Communication Window
+               </button>
+            </div>
+          ) : (
+            <div className="sticky top-6 space-y-6">
+              <div className="card bg-crisis-primary/5 border-crisis-primary/20 p-6">
+                 <h4 className="text-sm font-bold text-crisis-glow mb-4 flex items-center gap-2">
+                   <Shield className="w-4 h-4" />
+                   Safety Protocol
+                 </h4>
+                 <ul className="space-y-3">
+                    {[
+                      'Stay calm and secure your surroundings',
+                      'Help is being coordinated via CrisisGrid',
+                      'Once claimed, you can chat with the responder',
+                      'Keep your device battery optimized'
+                    ].map((step, i) => (
+                      <li key={i} className="flex gap-3 text-xs text-slate-300">
+                        <span className="text-crisis-glow font-bold">{i+1}.</span>
+                        {step}
+                      </li>
+                    ))}
+                 </ul>
+              </div>
+              
+              <div className="p-6 text-center opacity-20">
+                 <Activity className="w-12 h-12 mx-auto mb-4 text-slate-500" />
+                 <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500">CrisisGrid Mesh Network</p>
+              </div>
             </div>
           )}
         </div>
 
-        {/* SOS & Tools */}
-        <div className="space-y-6">
-          <div className="card border-red-500/20 bg-red-500/5 relative overflow-hidden group">
-             <h3 className="text-sm font-bold text-red-400 uppercase tracking-tighter mb-4 flex items-center gap-2">
-                <Zap className="w-4 h-4 fill-red-400" /> SOS Transmitter
-             </h3>
-             <form onSubmit={handleSendSOS} className="space-y-4">
-                <textarea className="input min-h-[100px] border-red-500/30 text-sm" placeholder="What is your situation?" value={sosMessage} onChange={(e) => setSosMessage(e.target.value)} />
-                <div className="flex gap-4">
-                  <select className="input flex-1 py-1.5 text-xs font-bold" value={sosSeverity} onChange={(e) => setSosSeverity(e.target.value)}>
-                    <option>Low</option><option>Medium</option><option>Critical</option>
-                  </select>
-                  <button type="submit" disabled={loading} className="btn-primary bg-red-600 w-32 border-none">
-                    {loading ? '...' : 'SOS'}
-                  </button>
-                </div>
-             </form>
-          </div>
-
-          <div className="space-y-4">
-             <h3 className="text-sm font-bold text-slate-400 uppercase tracking-tighter flex items-center gap-2">
-                <Package className="w-4 h-4" /> Logistics & Gear
-             </h3>
-             
-             {myResources.map(res => (
-               <div key={res._id} className="card p-3 bg-crisis-primary/10 flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                     <div className="p-2 bg-crisis-primary/20 rounded-md text-crisis-glow">
-                        {['Truck', 'Van', 'Ambulance'].includes(res.type) ? <Truck className="w-4 h-4" /> : <Package className="w-4 h-4" />}
-                     </div>
-                     <div className="text-xs font-bold text-white uppercase">{res.name}</div>
-                  </div>
-                  <button onClick={() => returnResource(res._id)} className="text-[10px] font-bold text-slate-400 hover:text-white uppercase">Return</button>
-               </div>
-             ))}
-
-             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {resources.filter(r => r.status === 'Available').map(res => (
-                  <div key={res._id} className="card p-3 border-crisis-border hover:border-crisis-primary/50 transition-colors">
-                     <div className="flex justify-between items-start mb-2">
-                        <span className="text-[10px] font-bold text-slate-500 uppercase">{res.type}</span>
-                        <button 
-                          onClick={() => requestResource(res._id)}
-                          disabled={user?.role === 'General Volunteer' && ['Truck', 'Van', 'Ambulance'].includes(res.type)}
-                          className="text-[10px] font-bold text-crisis-glow hover:underline uppercase disabled:text-slate-600"
-                        >
-                          Request
-                        </button>
-                     </div>
-                     <h4 className="text-white font-bold text-sm">{res.name}</h4>
-                  </div>
-                ))}
-             </div>
-          </div>
-        </div>
       </div>
     </div>
   );
