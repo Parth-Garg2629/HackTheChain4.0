@@ -8,6 +8,7 @@ require('dotenv').config();
 const authRoutes = require('./routes/auth');
 const resourceRoutes = require('./routes/resources');
 const alertRoutes = require('./routes/alerts');
+const taskRoutes = require('./routes/tasks');
 
 const app = express();
 const server = http.createServer(app);
@@ -33,6 +34,7 @@ app.use((req, res, next) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/resources', resourceRoutes);
 app.use('/api/alerts', alertRoutes);
+app.use('/api/tasks', taskRoutes);
 
 app.get('/', (req, res) => res.json({ message: 'ReliefSync API is live 🚀' }));
 

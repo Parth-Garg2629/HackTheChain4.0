@@ -4,6 +4,7 @@ import { Toaster } from 'react-hot-toast';
 import useAuthStore from './store/authStore';
 import useAlertStore from './store/alertStore';
 import useResourceStore from './store/resourceStore';
+import useTaskStore from './store/taskStore';
 import { initSocket } from './lib/socket';
 
 // Pages
@@ -21,6 +22,7 @@ function App() {
   const { user, token } = useAuthStore();
   const { prependAlert, markAlertResolvedFromSocket } = useAlertStore();
   const { updateResourceFromSocket, removeResourceFromSocket } = useResourceStore();
+  const { updateTaskFromSocket } = useTaskStore();
 
   useEffect(() => {
     if (token && user) {
@@ -29,6 +31,7 @@ function App() {
       // Global socket listeners for real-time sync
       socket.on('sos_alert', (data) => {
         prependAlert(data.alert);
+        if (data.task) updateTaskFromSocket(data.task);
       });
 
       socket.on('alert_created', (alert) => {
@@ -47,14 +50,30 @@ function App() {
         }
       });
 
+      // New CrisisGrid Task Events
+      socket.on('task_created', (task) => {
+        updateTaskFromSocket(task);
+      });
+
+      socket.on('task_claimed', (task) => {
+        updateTaskFromSocket(task);
+      });
+
+      socket.on('task_updated', (task) => {
+        updateTaskFromSocket(task);
+      });
+
       return () => {
         socket.off('sos_alert');
         socket.off('alert_created');
         socket.off('alert_resolved');
         socket.off('resource_updated');
+        socket.off('task_created');
+        socket.off('task_claimed');
+        socket.off('task_updated');
       };
     }
-  }, [token, user, prependAlert, markAlertResolvedFromSocket, updateResourceFromSocket, removeResourceFromSocket]);
+  }, [token, user, prependAlert, markAlertResolvedFromSocket, updateResourceFromSocket, removeResourceFromSocket, updateTaskFromSocket]);
 
   return (
     <Router>

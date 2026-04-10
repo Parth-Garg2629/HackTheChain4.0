@@ -10,12 +10,12 @@ const resourceSchema = new mongoose.Schema(
     },
     type: {
       type: String,
-      enum: ['Ambulance', 'Medical Kit', 'Food Supply', 'Water Tank', 'Rescue Equipment', 'Other'],
+      enum: ['Truck', 'Van', 'Ambulance', 'Medical Kit', 'Food Supply', 'Water Tank', 'Generator', 'Chainsaw', 'Rescue Equipment', 'Other'],
       default: 'Other',
     },
     status: {
       type: String,
-      enum: ['Available', 'Requested', 'In Transit', 'Allocated', 'Returned'],
+      enum: ['Available', 'Requested', 'In Transit', 'In Use', 'Maintenance', 'Allocated', 'Returned'],
       default: 'Available',
     },
     assignedTo: {
