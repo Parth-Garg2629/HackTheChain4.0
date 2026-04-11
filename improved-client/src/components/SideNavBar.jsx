@@ -1,7 +1,10 @@
 import React from 'react';
-import { NavLink, Link } from 'react-router-dom';
+import { NavLink } from 'react-router-dom';
+import useAuthStore from '../store/authStore';
 
 export default function SideNavBar() {
+  const { logout } = useAuthStore();
+  
   const navItems = [
     { name: 'Overview', icon: 'dashboard', path: '/' },
     { name: 'Incidents', icon: 'warning', path: '/incidents' },
@@ -10,6 +13,11 @@ export default function SideNavBar() {
     { name: 'Field Ops', icon: 'radar', path: '/volunteer' },
     { name: 'Settings', icon: 'settings', path: '/settings' },
   ];
+
+  const handleLogout = (e) => {
+    e.preventDefault();
+    logout();
+  };
 
   return (
     <aside className="h-screen w-64 border-r border-[#3c4a46]/20 bg-surface flex flex-col py-6 shrink-0 z-50">
@@ -50,13 +58,13 @@ export default function SideNavBar() {
       </nav>
       
       <div className="mt-auto px-4">
-        <Link
-          to="/login"
-          className="flex items-center gap-3 px-4 py-3 mx-2 my-1 rounded-lg font-headline font-medium text-sm tracking-tight transition-colors duration-200 text-on-surface-variant hover:text-error hover:bg-error/5"
+        <button
+          onClick={handleLogout}
+          className="w-full flex items-center gap-3 px-4 py-3 mx-2 my-1 rounded-lg font-headline font-medium text-sm tracking-tight transition-colors duration-200 text-on-surface-variant hover:text-error hover:bg-error/5"
         >
           <span className="material-symbols-outlined">logout</span>
           Sign Out
-        </Link>
+        </button>
       </div>
     </aside>
   );

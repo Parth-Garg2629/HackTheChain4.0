@@ -23,10 +23,14 @@ function ProtectedRoute({ children }) {
 }
 
 function App() {
-  const { user, token } = useAuthStore();
+  const { user, token, checkingAuth, checkAuth } = useAuthStore();
   const { prependAlert, markAlertResolvedFromSocket } = useAlertStore();
   const { updateResourceFromSocket, removeResourceFromSocket } = useResourceStore();
   const { updateTaskFromSocket } = useTaskStore();
+
+  useEffect(() => {
+    checkAuth();
+  }, [checkAuth]);
 
   useEffect(() => {
     if (token && user) {
@@ -78,6 +82,20 @@ function App() {
       };
     }
   }, [token, user, prependAlert, markAlertResolvedFromSocket, updateResourceFromSocket, removeResourceFromSocket, updateTaskFromSocket]);
+
+  if (checkingAuth) {
+    return (
+      <div className="min-h-screen bg-[#050f19] flex items-center justify-center">
+        <div className="flex flex-col items-center gap-6">
+          <div className="w-16 h-16 border-4 border-primary/20 border-t-primary rounded-full animate-spin"></div>
+          <div className="text-center">
+            <h2 className="text-white font-headline font-bold text-xl tracking-wide">SECURE LINK INITIATING</h2>
+            <p className="text-primary/60 font-mono text-[10px] mt-2 uppercase tracking-widest animate-pulse">Synchronizing with ReliefSync Hub...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <Router>

@@ -51,8 +51,8 @@ export default function Register() {
   };
 
   return (
-    <div className="bg-background text-on-surface font-body min-h-screen flex overflow-hidden relative">
-      <div className="flex w-full h-screen">
+    <div className="bg-background text-on-surface font-body min-h-screen flex relative">
+      <div className="flex w-full min-h-screen">
 
         {/* ── Left Panel: Branding ── */}
         <section className="hidden lg:flex lg:w-1/2 relative flex-col justify-between p-12 overflow-hidden">
@@ -118,7 +118,7 @@ export default function Register() {
         </section>
 
         {/* ── Right Panel: Registration Form ── */}
-        <main className="w-full lg:w-1/2 flex flex-col justify-center bg-surface px-8 md:px-16 lg:px-24 py-12 overflow-y-auto">
+        <main className="w-full lg:w-1/2 flex flex-col justify-center bg-surface px-6 md:px-12 lg:px-16 py-10 overflow-y-auto">
           <div className="max-w-md w-full mx-auto">
 
             {/* Header + step indicator */}

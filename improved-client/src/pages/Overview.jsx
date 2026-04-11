@@ -1,7 +1,7 @@
 import useAlertStore from '../store/alertStore';
 import useTaskStore from '../store/taskStore';
-import useAuthStore from '../store/authStore';
 import { useEffect, useMemo } from 'react';
+import { Link } from 'react-router-dom';
 
 export default function Overview() {
   const { alerts, fetchAlerts } = useAlertStore();
@@ -20,7 +20,7 @@ export default function Overview() {
   ], [alerts, tasks]);
 
   const recentAlerts = useMemo(() => alerts.slice(0, 4).map(alert => ({
-    id: alert._id.slice(-6).toUpperCase(),
+    id: alert._id ? alert._id.slice(-6).toUpperCase() : 'UNKNOWN',
     zone: alert.zoneCode,
     title: 'Incoming Distress Signal',
     message: alert.message,
@@ -39,7 +39,7 @@ export default function Overview() {
     });
     return Object.entries(zones).map(([code, data]) => ({
       id: code,
-      name: `Sector ${code.split('-')[1] || code}`,
+      name: code ? `Sector ${code.split('-').slice(1).join('-') || code}` : 'Unknown Sector',
       status: data.critical > 0 ? 'Critical' : 'Stable',
       alerts: data.alerts,
       fill: `w-[${Math.min(100, (data.alerts / 10) * 100)}%]`,

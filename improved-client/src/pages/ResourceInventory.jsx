@@ -1,5 +1,19 @@
 import useResourceStore from '../store/resourceStore';
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
+
+const activeZones = [
+  { id: 'RS-KOTA-01', name: 'Central Kota', status: 'Stable', barColor: 'bg-primary', fill: '65%', depots: 4, criticalItems: 0 },
+  { id: 'RS-PUNE-05', name: 'West Pune', status: 'Warning', barColor: 'bg-tertiary-container', fill: '40%', depots: 2, criticalItems: 2 },
+  { id: 'RS-BLR-12', name: 'North Bengaluru', status: 'Critical', barColor: 'bg-error', fill: '85%', depots: 6, criticalItems: 5 },
+  { id: 'RS-MUM-03', name: 'South Mumbai', status: 'Stable', barColor: 'bg-primary', fill: '70%', depots: 3, criticalItems: 0 },
+];
+
+const recentActivity = [
+  { title: 'Medical Restock', desc: '14 boxes of surgical kits arrived at Sector KOTA', icon: 'local_shipping', color: 'bg-primary/10 text-primary', time: '14:22' },
+  { title: 'Ration Depletion', desc: 'Food levels below 10% in North Bengaluru', icon: 'emergency', color: 'bg-error/10 text-error', time: '13:05' },
+  { title: 'New Fleet Arrival', desc: '3 mobile water purifiers deployed to West Pune', icon: 'water_drop', color: 'bg-secondary/10 text-secondary', time: '11:45' },
+];
 
 export default function ResourceInventory() {
   const { resources, fetchResources } = useResourceStore();

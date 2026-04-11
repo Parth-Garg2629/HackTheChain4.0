@@ -6,6 +6,7 @@ const useAuthStore = create((set) => ({
   user: JSON.parse(localStorage.getItem('reliefsync_user')) || null,
   token: localStorage.getItem('reliefsync_token') || null,
   loading: false,
+  checkingAuth: true,
   error: null,
 
   register: async (formData) => {
@@ -45,6 +46,30 @@ const useAuthStore = create((set) => ({
     localStorage.removeItem('reliefsync_user');
     disconnectSocket();
     set({ user: null, token: null, error: null });
+  },
+
+  checkAuth: async () => {
+    const token = localStorage.getItem('reliefsync_token');
+    if (!token) {
+      set({ checkingAuth: false, user: null, token: null });
+      return;
+    }
+
+    try {
+      const { data } = await api.get('/auth/me');
+      if (data.success) {
+        initSocket(data.user);
+        set({ user: data.user, token, checkingAuth: false });
+      } else {
+        localStorage.removeItem('reliefsync_token');
+        localStorage.removeItem('reliefsync_user');
+        set({ user: null, token: null, checkingAuth: false });
+      }
+    } catch (err) {
+      localStorage.removeItem('reliefsync_token');
+      localStorage.removeItem('reliefsync_user');
+      set({ user: null, token: null, checkingAuth: false });
+    }
   },
 
   clearError: () => set({ error: null }),

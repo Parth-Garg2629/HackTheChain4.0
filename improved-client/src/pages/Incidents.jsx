@@ -2,7 +2,7 @@ import useAlertStore from '../store/alertStore';
 import useTaskStore from '../store/taskStore';
 import useAuthStore from '../store/authStore';
 import toast from 'react-hot-toast';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
 const SEVERITY_COLORS = {
   Critical: { badge: 'bg-error/10 text-error', border: 'border-error/60' },
@@ -17,7 +17,6 @@ const STATUS_COLORS = {
 };
 
 export default function Incidents() {
-  const { user } = useAuthStore();
   const { alerts, fetchAlerts, resolveAlert } = useAlertStore();
   const { tasks, fetchTasks, claimTask } = useTaskStore();
   
@@ -66,7 +65,7 @@ export default function Incidents() {
       <div className="flex items-end justify-between">
         <div>
           <h1 className="font-headline font-extrabold text-4xl text-on-surface tracking-tight">Incident Log</h1>
-          <p className="text-on-surface-variant font-body mt-1">Tracking {ALL_INCIDENTS.length} active and resolved incidents across all zones</p>
+          <p className="text-on-surface-variant font-body mt-1">Tracking {alerts.length} active and resolved incidents across all zones</p>
         </div>
         <button className="bg-primary-container text-on-primary-container px-5 py-2.5 rounded-lg flex items-center gap-2 font-semibold hover:brightness-110 transition-all text-sm">
           <span className="material-symbols-outlined text-lg">add</span>
@@ -164,7 +163,7 @@ export default function Incidents() {
                     <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider ${sc.badge}`}>
                       {inc.severity}
                     </span>
-                    <span className="text-[10px] font-mono text-outline">{inc._id.slice(-6).toUpperCase()}</span>
+                    <span className="text-[10px] font-mono text-outline">{inc._id ? inc._id.slice(-6).toUpperCase() : 'UNKNOWN'}</span>
                     <span className="text-[10px] bg-surface-container-highest px-2 py-0.5 rounded font-mono text-outline uppercase">{inc.zoneCode}</span>
                     <span className={`text-[10px] font-bold uppercase ${inc.isResolved ? 'text-primary' : 'text-error'}`}>• {status}</span>
                   </div>

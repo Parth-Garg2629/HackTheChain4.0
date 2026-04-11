@@ -55,6 +55,7 @@ const useTaskStore = create((set, get) => ({
 
   // Socket updates
   updateTaskFromSocket: (updatedTask) => {
+    if (!updatedTask || !updatedTask._id) return;
     set((state) => {
       const exists = state.tasks.find((t) => t._id === updatedTask._id);
       if (exists) {

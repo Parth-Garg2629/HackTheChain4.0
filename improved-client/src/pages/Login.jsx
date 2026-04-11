@@ -28,8 +28,8 @@ export default function Login() {
   };
 
   return (
-    <div className="bg-background text-on-background font-body min-h-screen flex overflow-hidden relative">
-      <main className="flex w-full h-screen">
+    <div className="bg-background text-on-background font-body min-h-screen flex relative">
+      <main className="flex w-full min-h-screen">
 
         {/* ── Left Panel: Branding ── */}
         <section
@@ -84,7 +84,7 @@ export default function Login() {
         </section>
 
         {/* ── Right Panel: Login Form ── */}
-        <section className="w-full lg:w-1/2 flex items-center justify-center p-8 lg:p-24 bg-surface relative">
+        <section className="w-full lg:w-1/2 flex items-center justify-center p-6 lg:p-16 bg-surface relative">
           <div className="w-full max-w-md space-y-10 relative z-10">
 
             {/* Mobile branding */}

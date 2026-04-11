@@ -39,6 +39,7 @@ const useAlertStore = create((set) => ({
 
   // Prepend new alert from socket (Critical ones go to top)
   prependAlert: (alert) => {
+    if (!alert || !alert._id) return;
     set((state) => {
       const exists = state.alerts.find((a) => a._id === alert._id);
       if (exists) return state;

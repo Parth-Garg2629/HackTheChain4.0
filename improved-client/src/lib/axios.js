@@ -19,7 +19,6 @@ api.interceptors.response.use(
     if (err.response?.status === 401) {
       localStorage.removeItem('reliefsync_token');
       localStorage.removeItem('reliefsync_user');
-      // Only redirect if not already on login page
       if (window.location.pathname !== '/login') {
         window.location.href = '/login';
       }

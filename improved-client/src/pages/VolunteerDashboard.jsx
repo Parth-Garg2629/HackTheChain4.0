@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import useAuthStore from '../store/authStore';
 import useAlertStore from '../store/alertStore';
 import useTaskStore from '../store/taskStore';
+import { Link } from 'react-router-dom';
 import ChatPanel from '../components/ChatPanel';
 import toast from 'react-hot-toast';
 
@@ -90,7 +91,7 @@ export default function VolunteerDashboard() {
         <div className="h-64 bg-surface-container-low flex flex-col border-t border-outline-variant/10">
           <div className="px-6 py-4 flex justify-between items-center border-b border-outline-variant/5">
             <h3 className="font-headline font-bold text-xs uppercase tracking-[0.2em] text-outline">
-              {activeChatTask ? `Mission Comms: ${activeChatTask.title.slice(-6)}` : 'Active Mission Control'}
+              {activeChatTask ? `Mission Comms: ${activeChatTask.id ? activeChatTask.id.slice(-6).toUpperCase() : 'UNKNOWN'}` : 'Active Mission Control'}
             </h3>
             {activeChatTask && (
               <button 
@@ -120,7 +121,7 @@ export default function VolunteerDashboard() {
                   myClaimedMissions.map((mission) => (
                     <div key={mission._id} className="flex gap-4 items-center border-l-2 border-primary pl-4 bg-surface-container-highest/30 p-3 rounded-r-lg">
                       <div className="flex-1">
-                        <p className="text-sm font-medium text-on-surface">Mission {mission._id.slice(-6).toUpperCase()}</p>
+                        <p className="text-sm font-medium text-on-surface">Mission {mission._id ? mission._id.slice(-6).toUpperCase() : 'UNKNOWN'}</p>
                         <p className="text-xs text-outline mt-1 line-clamp-1">{alerts.find(a => a._id === mission.linkedAlert || a._id === mission.linkedAlert?._id)?.message}</p>
                       </div>
                       <button 
