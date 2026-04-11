@@ -1,30 +1,53 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
+import useAuthStore from '../store/authStore';
+import toast from 'react-hot-toast';
 
 const ROLES = [
   {
-    id: 'coordinator',
-    icon: 'location_city',
-    label: 'Base Coordinator',
-    sub: 'HQ & Logistics',
-  },
-  {
-    id: 'volunteer',
+    id: 'General Volunteer',
     icon: 'volunteer_activism',
     label: 'Field Volunteer',
     sub: 'Ground Response',
   },
+  {
+    id: 'Victim',
+    icon: 'emergency',
+    label: 'Citizen in Distress',
+    sub: 'Emergency Signal',
+  },
 ];
 
 export default function Register() {
-  const [selectedRole, setSelectedRole] = useState('coordinator');
+  const [selectedRole, setSelectedRole] = useState('General Volunteer');
   const [showPassword, setShowPassword] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [formData, setFormData] = useState({ name: '', zoneCode: '', password: '' });
 
-  const handleRegister = (e) => {
+  const { register, loading } = useAuthStore();
+  const navigate = useNavigate();
+
+  const handleRegister = async (e) => {
     e.preventDefault();
-    // Simulate successful registration
-    setShowSuccessModal(true);
+    
+    // Validate zone code format (RJ-KOTA-01)
+    const zoneRegex = /^[A-Z]{2}-[A-Z]+-\d{2}$/;
+    if (!zoneRegex.test(formData.zoneCode.toUpperCase())) {
+      toast.error('Invalid zone format. Use STATE-CITY-01 (e.g. MH-PUNE-05)');
+      return;
+    }
+
+    const res = await register({
+      ...formData,
+      role: selectedRole
+    });
+
+    if (res.success) {
+      toast.success('Registration successful.');
+      setShowSuccessModal(true);
+    } else {
+      toast.error(res.message || 'Registration failed');
+    }
   };
 
   return (
@@ -127,20 +150,13 @@ export default function Register() {
                   <input
                     type="text"
                     required
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                     placeholder="e.g. Elena Rodriguez"
                     className="w-full bg-surface-container-highest border-none rounded-lg p-4 text-on-surface placeholder:text-outline/40 focus:ring-1 focus:ring-primary/30 transition-all outline-none"
                   />
                 </div>
 
-                <div className="space-y-1.5">
-                  <label className="text-sm font-semibold text-on-surface/80 px-1">Operator Email</label>
-                  <input
-                    type="email"
-                    required
-                    placeholder="name@org.relief"
-                    className="w-full bg-surface-container-highest border-none rounded-lg p-4 text-on-surface placeholder:text-outline/40 focus:ring-1 focus:ring-primary/30 transition-all outline-none"
-                  />
-                </div>
 
                 <div className="space-y-1.5">
                   <label className="text-sm font-semibold text-on-surface/80 px-1">Password</label>
@@ -148,6 +164,8 @@ export default function Register() {
                     <input
                       required
                       type={showPassword ? 'text' : 'password'}
+                      value={formData.password}
+                      onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                       placeholder="••••••••••••"
                       className="w-full bg-surface-container-highest border-none rounded-lg p-4 text-on-surface placeholder:text-outline/40 focus:ring-1 focus:ring-primary/30 transition-all outline-none"
                     />
@@ -219,7 +237,9 @@ export default function Register() {
                   <input
                     type="text"
                     required
-                    placeholder="e.g. ZONE-KA-01 (Karnatka Central)"
+                    value={formData.zoneCode}
+                    onChange={(e) => setFormData({ ...formData, zoneCode: e.target.value })}
+                    placeholder="e.g. RJ-KOTA-01"
                     className="w-full bg-surface-container-highest border-none rounded-lg p-4 text-on-surface font-mono placeholder:text-outline/40 placeholder:font-body focus:ring-1 focus:ring-primary/30 transition-all outline-none"
                   />
                   <span className="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-outline/30 pointer-events-none">
@@ -233,12 +253,13 @@ export default function Register() {
               <div className="pt-4">
                 <button
                   type="submit"
-                  className="w-full py-4 bg-primary-container hover:bg-primary text-on-primary-container font-bold rounded-lg transition-all flex items-center justify-center gap-2 group shadow-lg shadow-primary-container/10"
+                  disabled={loading}
+                  className="w-full py-4 bg-primary-container hover:bg-primary text-on-primary-container font-bold rounded-lg transition-all flex items-center justify-center gap-2 group shadow-lg shadow-primary-container/10 disabled:opacity-50"
                 >
-                  Create Account
-                  <span className="material-symbols-outlined group-hover:translate-x-1 transition-transform">
+                  {loading ? 'Initializing Operator...' : 'Create Account'}
+                  {!loading && <span className="material-symbols-outlined group-hover:translate-x-1 transition-transform">
                     arrow_forward
-                  </span>
+                  </span>}
                 </button>
 
                 <p className="text-center text-on-surface-variant text-sm mt-6">

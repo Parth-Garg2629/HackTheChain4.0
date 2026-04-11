@@ -16,7 +16,7 @@ export const initSocket = (user) => {
     console.log('✅ Socket connected:', socket.id);
     // Join role + zone rooms after connecting
     socket.emit('join_room', {
-      userId: user.id,
+      userId: user.id || user._id,
       role: user.role,
       zone: user.zoneCode,
     });

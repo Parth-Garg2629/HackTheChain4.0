@@ -1,7 +1,5 @@
 import { create } from 'zustand';
-import axios from 'axios';
-
-const API_URL = 'http://localhost:5000/api/messages';
+import api from '../lib/axios';
 
 const useChatStore = create((set, get) => ({
   messages: {}, // { taskId: [messages] }
@@ -10,15 +8,13 @@ const useChatStore = create((set, get) => ({
   fetchMessages: async (taskId) => {
     set({ loading: true });
     try {
-      const token = localStorage.getItem('token');
-      const res = await axios.get(`${API_URL}/${taskId}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (res.data.success) {
+      // Use the reliefsync_token consistent with other stores
+      const { data } = await api.get(`/messages/${taskId}`);
+      if (data.success) {
         set((state) => ({
           messages: {
             ...state.messages,
-            [taskId]: res.data.data,
+            [taskId]: data.data,
           },
         }));
       }

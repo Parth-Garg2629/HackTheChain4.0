@@ -1,32 +1,15 @@
-import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
-
-const inventoryData = [
-  { id: '1', name: 'Trauma Kit - Type Alpha', sku: 'MED-992-K', category: 'Medical', location: 'Zone A-4', stock: 82, stockLabel: 'Available', icon: 'medical_services', colorTheme: 'primary' },
-  { id: '2', name: 'Potable Water Pallet', sku: 'WAT-110-P', category: 'Food & Water', location: 'Zone C-1 (Port)', stock: 12, stockLabel: 'Low Stock', icon: 'water_drop', colorTheme: 'error' },
-  { id: '3', name: 'Surveillance Drone Unit', sku: 'TEC-440-D', category: 'Technology', location: 'Hangar 9', stock: 100, stockLabel: 'Available', icon: 'precision_manufacturing', colorTheme: 'secondary' },
-  { id: '4', name: 'Heavy Utility Truck (4x4)', sku: 'VEH-702-U', category: 'Transport', location: 'Regional Depot', stock: 45, stockLabel: 'Available', icon: 'local_shipping', colorTheme: 'primary' },
-  { id: '5', name: 'Blankets (Winter Grade)', sku: 'SUP-330-W', category: 'Supplies', location: 'Zone B (Warehouse)', stock: 8, stockLabel: 'Low Stock', icon: 'bed', colorTheme: 'error' },
-  { id: '6', name: 'Portable Generator', sku: 'EQP-220-G', category: 'Technology', location: 'Zone TS-22', stock: 60, stockLabel: 'In Use', icon: 'bolt', colorTheme: 'tertiary' },
-];
-
-const recentActivity = [
-  { icon: 'add_shopping_cart', color: 'text-success_green bg-success_green/10', title: 'Stock Received', desc: '500 units of Insulin Gen-B added to Central Depot.', time: '14 mins ago' },
-  { icon: 'local_shipping', color: 'text-secondary bg-secondary/10', title: 'Deployment Start', desc: 'Drone Unit 04-A dispatched to North-West Sector.', time: '2 hours ago' },
-  { icon: 'priority_high', color: 'text-error bg-error/10', title: 'Critical Stock Alert', desc: 'Blankets (Winter) reached threshold limit in Zone B.', time: '4 hours ago' },
-  { icon: 'swap_horiz', color: 'text-tertiary bg-tertiary/10', title: 'Zone Transfer', desc: 'Trauma kits moved from Depot Alpha to Zone KA-01.', time: '6 hours ago' },
-];
-
-const activeZones = [
-  { id: 'ZONE-KA-01', name: 'Central Bengaluru', status: 'Critical', depots: 3, fill: '85%', barColor: 'bg-error', criticalItems: 5 },
-  { id: 'ZONE-MH-44', name: 'Mumbai South', status: 'Critical', depots: 5, fill: '92%', barColor: 'bg-error', criticalItems: 8 },
-  { id: 'ZONE-TN-14', name: 'North Chennai', status: 'Warning', depots: 2, fill: '48%', barColor: 'bg-tertiary-container', criticalItems: 2 },
-  { id: 'ZONE-KL-09', name: 'Kochi Coastal', status: 'Stable', depots: 4, fill: '20%', barColor: 'bg-primary', criticalItems: 0 },
-];
+import useResourceStore from '../store/resourceStore';
+import { useEffect, useMemo } from 'react';
 
 export default function ResourceInventory() {
+  const { resources, fetchResources } = useResourceStore();
   const [categoryFilter, setCategoryFilter] = useState('All');
-  const categories = ['All', 'Medical', 'Food & Water', 'Technology', 'Transport', 'Supplies'];
+
+  useEffect(() => {
+    fetchResources();
+  }, [fetchResources]);
+
+  const categories = ['All', 'Medical', 'Food', 'Water', 'Rescue', 'Tech'];
 
   const colorMap = {
     primary: { text: 'text-primary', bar: 'bg-primary', badge: 'bg-primary/10 text-primary' },
@@ -35,9 +18,12 @@ export default function ResourceInventory() {
     tertiary: { text: 'text-tertiary', bar: 'bg-tertiary', badge: 'bg-tertiary/10 text-tertiary' },
   };
 
-  const filtered = categoryFilter === 'All'
-    ? inventoryData
-    : inventoryData.filter((i) => i.category === categoryFilter);
+  const filtered = useMemo(() => {
+    return resources.filter((item) => {
+      const match = categoryFilter === 'All' || item.category === categoryFilter;
+      return match;
+    });
+  }, [resources, categoryFilter]);
 
   return (
     <div className="flex-1 overflow-y-auto p-8 space-y-8 bg-[#050f19]">
@@ -129,43 +115,41 @@ export default function ResourceInventory() {
           {/* Inventory Cards */}
           <div className="space-y-3">
             {filtered.map((item) => {
-              const c = colorMap[item.colorTheme] || colorMap.primary;
+              const stockLevel = (item.quantity / 500) * 100; // Mock full capacity as 500
+              const isLow = item.quantity < 50;
+              const c = isLow ? colorMap.error : colorMap.primary;
+              const categoryIcons = { Medical: 'medical_services', Food: 'lunch_dining', Water: 'water_drop', Tech: 'bolt', Rescue: 'handyman' };
+              
               return (
-                <div key={item.id} className="bg-surface-container-lowest hover:bg-surface-container-low transition-colors duration-200 p-5 rounded-xl flex items-center gap-5 group">
+                <div key={item._id} className="bg-surface-container-lowest hover:bg-surface-container-low transition-colors duration-200 p-5 rounded-xl flex items-center gap-5 group">
                   <div className={`w-14 h-14 bg-surface-container-highest rounded-lg flex items-center justify-center ${c.text} shrink-0`}>
-                    <span className="material-symbols-outlined text-3xl">{item.icon}</span>
+                    <span className="material-symbols-outlined text-3xl">{categoryIcons[item.category] || 'inventory_2'}</span>
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
                       <h3 className="font-bold text-on-surface">{item.name}</h3>
-                      <span className="text-[10px] font-mono bg-outline-variant/20 px-2 py-0.5 rounded text-outline uppercase tracking-wider">SKU: {item.sku}</span>
+                      <span className="text-[10px] font-mono bg-outline-variant/20 px-2 py-0.5 rounded text-outline uppercase tracking-wider">ZONE: {item.zone}</span>
                     </div>
                     <div className="flex items-center gap-4 mt-1 flex-wrap">
                       <span className="text-xs text-on-surface-variant flex items-center gap-1">
                         <span className="material-symbols-outlined text-sm">category</span> {item.category}
                       </span>
-                      <span className="text-xs text-on-surface-variant flex items-center gap-1">
-                        <span className="material-symbols-outlined text-sm">location_on</span> {item.location}
-                      </span>
                     </div>
                   </div>
                   <div className="w-44 shrink-0">
                     <div className="flex justify-between mb-1">
-                      <span className={`text-xs ${item.colorTheme === 'error' ? 'text-error font-medium' : 'text-on-surface-variant'}`}>
-                        {item.colorTheme === 'error' ? 'Critical Depletion' : 'Stock Level'}
+                      <span className={`text-xs ${isLow ? 'text-error font-medium' : 'text-on-surface-variant'}`}>
+                        {isLow ? 'Critical Depletion' : 'Supply Level'}
                       </span>
-                      <span className={`text-xs font-bold font-mono ${c.text}`}>{item.stock}%</span>
+                      <span className={`text-xs font-bold font-mono ${c.text}`}>{item.quantity} units</span>
                     </div>
                     <div className="h-1.5 w-full bg-surface-container-highest rounded-full overflow-hidden">
-                      <div className={`h-full ${c.bar} rounded-full`} style={{ width: `${item.stock}%` }}></div>
+                      <div className={`h-full ${c.bar} rounded-full`} style={{ width: `${Math.min(100, stockLevel)}%` }}></div>
                     </div>
                   </div>
                   <div className="w-28 text-right shrink-0">
-                    <span className={`px-3 py-1 text-xs font-bold rounded-full ${c.badge}`}>{item.stockLabel}</span>
+                    <span className={`px-3 py-1 text-xs font-bold rounded-full ${c.badge}`}>{isLow ? 'LOW STOCK' : 'AVAILABLE'}</span>
                   </div>
-                  <button className="opacity-0 group-hover:opacity-100 p-2 text-on-surface-variant hover:text-primary transition-all shrink-0">
-                    <span className="material-symbols-outlined">chevron_right</span>
-                  </button>
                 </div>
               );
             })}

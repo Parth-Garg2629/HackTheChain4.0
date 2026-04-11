@@ -1,19 +1,13 @@
-import React, { useState } from 'react';
-
-const ALL_INCIDENTS = [
-  { id: 'INC-9921', zone: 'ZONE-KA-01', title: 'Structural Collapse - MG Road', desc: 'Multi-storey building partially collapsed. 6 people reported trapped. Fire brigade and NDRF on standby.', severity: 'Critical', status: 'Active', time: '14:22', responders: 12 },
-  { id: 'INC-9920', zone: 'ZONE-MH-44', title: 'Flooding - Dharavi East', desc: 'Severe waterlogging has cut off 3 residential colonies. Boats deployed.', severity: 'Critical', status: 'Active', time: '14:10', responders: 20 },
-  { id: 'INC-9918', zone: 'ZONE-TN-14', title: 'Power Outage - Indiranagar', desc: 'Substation fire has caused widespread outage affecting 4,000+ households.', severity: 'Warning', status: 'Active', time: '13:45', responders: 5 },
-  { id: 'INC-9915', zone: 'ZONE-AP-05', title: 'Road Blockage - NH-44', desc: 'Landslide debris blocking primary relief convoy route.', severity: 'Warning', status: 'In Progress', time: '13:10', responders: 8 },
-  { id: 'INC-9910', zone: 'ZONE-MH-44', title: 'Medical Supply - Bandra Hospital', desc: 'Critical shortage of IV fluids and blood type O+. Air-lift requested.', severity: 'Critical', status: 'In Progress', time: '12:55', responders: 3 },
-  { id: 'INC-9905', zone: 'ZONE-KL-09', title: 'Medical Supply Shortage - Kochi', desc: 'Coastal clinic running low on antibiotics. Fleet dispatch initiated.', severity: 'Warning', status: 'Resolved', time: '12:30', responders: 4 },
-  { id: 'INC-9900', zone: 'ZONE-TS-22', title: 'Evacuation Required - Secunderabad', desc: 'Flash flood risk imminent. 200+ residents require evacuation.', severity: 'Critical', status: 'Active', time: '11:50', responders: 30 },
-];
+import useAlertStore from '../store/alertStore';
+import useTaskStore from '../store/taskStore';
+import useAuthStore from '../store/authStore';
+import toast from 'react-hot-toast';
+import { useEffect } from 'react';
 
 const SEVERITY_COLORS = {
   Critical: { badge: 'bg-error/10 text-error', border: 'border-error/60' },
-  Warning: { badge: 'bg-tertiary-container/10 text-tertiary-container', border: 'border-tertiary-container/60' },
-  Advisory: { badge: 'bg-primary/10 text-primary', border: 'border-primary/60' },
+  Medium: { badge: 'bg-tertiary-container/10 text-tertiary-container', border: 'border-tertiary-container/60' },
+  Low: { badge: 'bg-primary/10 text-primary', border: 'border-primary/60' },
 };
 
 const STATUS_COLORS = {
@@ -23,14 +17,45 @@ const STATUS_COLORS = {
 };
 
 export default function Incidents() {
+  const { user } = useAuthStore();
+  const { alerts, fetchAlerts, resolveAlert } = useAlertStore();
+  const { tasks, fetchTasks, claimTask } = useTaskStore();
+  
   const [filter, setFilter] = useState('All');
   const [severityFilter, setSeverityFilter] = useState('All');
 
-  const filters = ['All', 'Active', 'In Progress', 'Resolved'];
-  const severities = ['All', 'Critical', 'Warning', 'Advisory'];
+  useEffect(() => {
+    fetchAlerts();
+    fetchTasks();
+  }, [fetchAlerts, fetchTasks]);
 
-  const filtered = ALL_INCIDENTS.filter((inc) => {
-    const statusMatch = filter === 'All' || inc.status === filter;
+  const handleClaim = async (alertId) => {
+    const task = tasks.find(t => t.linkedAlert === alertId || t.linkedAlert?._id === alertId);
+    if (!task) return;
+    
+    const res = await claimTask(task._id);
+    if (res.success) {
+      toast.success('Mission claimed. Initiating tactical link.');
+    } else {
+      toast.error(res.message);
+    }
+  };
+
+  const handleResolve = async (alertId) => {
+    const res = await resolveAlert(alertId);
+    if (res.success) {
+      toast.success('Alert resolved and archived.');
+    } else {
+      toast.error(res.message);
+    }
+  };
+
+  const filters = ['All', 'Active', 'Resolved'];
+  const severities = ['All', 'Critical', 'Medium', 'Low'];
+
+  const filtered = alerts.filter((inc) => {
+    const status = inc.isResolved ? 'Resolved' : 'Active';
+    const statusMatch = filter === 'All' || status === filter;
     const sevMatch = severityFilter === 'All' || inc.severity === severityFilter;
     return statusMatch && sevMatch;
   });
@@ -56,8 +81,8 @@ export default function Incidents() {
             <span className="material-symbols-outlined">crisis_alert</span>
           </div>
           <div>
-            <div className="text-2xl font-bold font-mono text-error">{ALL_INCIDENTS.filter(i => i.severity === 'Critical').length}</div>
-            <div className="text-xs text-on-surface-variant">Critical</div>
+            <div className="text-2xl font-bold font-mono text-error">{alerts.filter(i => i.severity === 'Critical' && !i.isResolved).length}</div>
+            <div className="text-xs text-on-surface-variant">Active Critical</div>
           </div>
         </div>
         <div className="bg-tertiary-container/5 border border-tertiary-container/20 rounded-xl p-4 flex items-center gap-4">
@@ -65,8 +90,8 @@ export default function Incidents() {
             <span className="material-symbols-outlined">warning</span>
           </div>
           <div>
-            <div className="text-2xl font-bold font-mono text-tertiary-container">{ALL_INCIDENTS.filter(i => i.severity === 'Warning').length}</div>
-            <div className="text-xs text-on-surface-variant">Warnings</div>
+            <div className="text-2xl font-bold font-mono text-tertiary-container">{alerts.filter(i => !i.isResolved).length}</div>
+            <div className="text-xs text-on-surface-variant">Total Active</div>
           </div>
         </div>
         <div className="bg-primary/5 border border-primary/20 rounded-xl p-4 flex items-center gap-4">
@@ -74,8 +99,8 @@ export default function Incidents() {
             <span className="material-symbols-outlined">check_circle</span>
           </div>
           <div>
-            <div className="text-2xl font-bold font-mono text-primary">{ALL_INCIDENTS.filter(i => i.status === 'Resolved').length}</div>
-            <div className="text-xs text-on-surface-variant">Resolved</div>
+            <div className="text-2xl font-bold font-mono text-primary">{alerts.filter(i => i.isResolved).length}</div>
+            <div className="text-xs text-on-surface-variant">Total Resolved</div>
           </div>
         </div>
       </div>
@@ -125,10 +150,13 @@ export default function Incidents() {
           </div>
         ) : (
           filtered.map((inc) => {
-            const sc = SEVERITY_COLORS[inc.severity] || SEVERITY_COLORS.Advisory;
+            const sc = SEVERITY_COLORS[inc.severity] || SEVERITY_COLORS.Low;
+            const task = tasks.find(t => t.linkedAlert === inc._id || t.linkedAlert?._id === inc._id);
+            const status = inc.isResolved ? 'Resolved' : task?.status || 'Active';
+            
             return (
               <div
-                key={inc.id}
+                key={inc._id}
                 className={`bg-surface-container-low rounded-xl p-5 border-l-4 ${sc.border} hover:bg-surface-container transition-colors group flex items-start gap-5`}
               >
                 <div className="flex-1 min-w-0">
@@ -136,29 +164,37 @@ export default function Incidents() {
                     <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider ${sc.badge}`}>
                       {inc.severity}
                     </span>
-                    <span className="text-[10px] font-mono text-outline">{inc.id}</span>
-                    <span className="text-[10px] bg-surface-container-highest px-2 py-0.5 rounded font-mono text-outline uppercase">{inc.zone}</span>
-                    <span className={`text-[10px] font-bold uppercase ${STATUS_COLORS[inc.status]}`}>• {inc.status}</span>
+                    <span className="text-[10px] font-mono text-outline">{inc._id.slice(-6).toUpperCase()}</span>
+                    <span className="text-[10px] bg-surface-container-highest px-2 py-0.5 rounded font-mono text-outline uppercase">{inc.zoneCode}</span>
+                    <span className={`text-[10px] font-bold uppercase ${inc.isResolved ? 'text-primary' : 'text-error'}`}>• {status}</span>
                   </div>
-                  <h3 className="text-sm font-bold text-on-surface mb-1">{inc.title}</h3>
-                  <p className="text-xs text-on-surface-variant leading-relaxed line-clamp-2">{inc.desc}</p>
+                  <h3 className="text-sm font-bold text-on-surface mb-1">Incoming SOS Request</h3>
+                  <p className="text-xs text-on-surface-variant leading-relaxed line-clamp-2">{inc.message}</p>
                   <div className="flex items-center gap-4 mt-3">
                     <span className="text-[10px] text-outline font-mono flex items-center gap-1">
                       <span className="material-symbols-outlined text-xs">schedule</span>
-                      {inc.time} PM
+                      {new Date(inc.createdAt).toLocaleTimeString()}
                     </span>
                     <span className="text-[10px] text-outline font-mono flex items-center gap-1">
-                      <span className="material-symbols-outlined text-xs">groups</span>
-                      {inc.responders} responders
+                      <span className="material-symbols-outlined text-xs">person</span>
+                      Sent By: {inc.sentBy?.name || 'Unknown'}
                     </span>
                   </div>
                 </div>
                 <div className="flex gap-2 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <button className="px-3 py-1.5 bg-primary/10 text-primary text-xs font-bold rounded-lg hover:bg-primary/20 transition-colors">
-                    Assign
-                  </button>
-                  {inc.status !== 'Resolved' && (
-                    <button className="px-3 py-1.5 bg-surface-container-highest text-on-surface text-xs font-bold rounded-lg hover:bg-surface-container transition-colors">
+                  {!inc.isResolved && task?.status === 'Open' && (
+                    <button 
+                      onClick={() => handleClaim(inc._id)}
+                      className="px-3 py-1.5 bg-primary/10 text-primary text-xs font-bold rounded-lg hover:bg-primary/20 transition-colors"
+                    >
+                      Claim mission
+                    </button>
+                  )}
+                  {!inc.isResolved && (
+                    <button 
+                      onClick={() => handleResolve(inc._id)}
+                      className="px-3 py-1.5 bg-surface-container-highest text-on-surface text-xs font-bold rounded-lg hover:bg-surface-container transition-colors"
+                    >
                       Resolve
                     </button>
                   )}

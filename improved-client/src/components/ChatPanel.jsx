@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Send, MessageSquare, Clock, User, Shield } from 'lucide-react';
+import { Send, MessageSquare, Shield, User } from 'lucide-react';
 import io from 'socket.io-client';
 import useAuthStore from '../store/authStore';
 import useChatStore from '../store/chatStore';
@@ -48,7 +48,7 @@ export default function ChatPanel({ taskId, missionTitle, isCompleted }) {
 
     socket.emit('send_mission_message', {
       taskId,
-      senderId: user.id,
+      senderId: user.id || user._id,
       content: content.trim()
     });
 
@@ -56,18 +56,18 @@ export default function ChatPanel({ taskId, missionTitle, isCompleted }) {
   };
 
   return (
-    <div className="flex flex-col h-[500px] border border-crisis-border bg-crisis-bg/50 rounded-2xl overflow-hidden backdrop-blur-md">
+    <div className="flex flex-col h-[500px] border border-outline-variant bg-surface-container/30 rounded-2xl overflow-hidden backdrop-blur-md">
       {/* Header */}
-      <div className="p-4 border-b border-crisis-border bg-crisis-primary/10 flex items-center justify-between">
+      <div className="p-4 border-b border-outline-variant bg-primary/15 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="p-2 rounded-lg bg-crisis-primary/20">
-            <MessageSquare className="w-5 h-5 text-crisis-glow" />
+          <div className="p-2 rounded-lg bg-primary/20">
+            <MessageSquare className="w-5 h-5 text-primary" />
           </div>
           <div>
-            <h3 className="text-sm font-bold text-white uppercase tracking-wider line-clamp-1">{missionTitle || 'Mission Comms'}</h3>
+            <h3 className="text-sm font-bold text-on-surface uppercase tracking-wider line-clamp-1">{missionTitle || 'Mission Comms'}</h3>
             <div className="flex items-center gap-1.5 mt-0.5">
-              <div className={`w-1.5 h-1.5 rounded-full ${isCompleted ? 'bg-slate-500' : 'bg-green-500 animate-pulse'}`} />
-              <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">
+              <div className={`w-1.5 h-1.5 rounded-full ${isCompleted ? 'bg-outline' : 'bg-success_green animate-pulse'}`} />
+              <span className="text-[10px] text-on-surface-variant font-bold uppercase tracking-widest">
                 {isCompleted ? 'Mission Offline' : 'Live Tactical Feed'}
               </span>
             </div>
@@ -78,35 +78,35 @@ export default function ChatPanel({ taskId, missionTitle, isCompleted }) {
       {/* Messages Feed */}
       <div 
         ref={scrollRef}
-        className="flex-1 p-4 overflow-y-auto space-y-4 scrollbar-thin scrollbar-thumb-crisis-border"
+        className="flex-1 p-4 overflow-y-auto space-y-4 custom-scrollbar"
       >
         {missionMessages.length === 0 ? (
           <div className="h-full flex flex-col items-center justify-center opacity-30 text-center px-8">
             <MessageSquare className="w-10 h-10 mb-2" />
-            <p className="text-xs font-bold uppercase tracking-widest">Awaiting Communication Secure channel established</p>
+            <p className="text-xs font-bold uppercase tracking-widest text-on-surface-variant">Awaiting Communication Secure channel established</p>
           </div>
         ) : (
           missionMessages.map((msg, idx) => (
             <div 
               key={msg._id || idx}
-              className={`flex flex-col ${msg.sender?._id === user.id ? 'items-end' : 'items-start'}`}
+              className={`flex flex-col ${msg.sender?._id === (user.id || user._id) ? 'items-end' : 'items-start'}`}
             >
               <div className="flex items-center gap-1.5 mb-1 px-1">
                 {msg.sender?.role === 'General Volunteer' ? (
-                  <Shield className="w-3 h-3 text-crisis-glow" />
+                  <Shield className="w-3 h-3 text-primary" />
                 ) : (
-                  <User className="w-3 h-3 text-slate-400" />
+                  <User className="w-3 h-3 text-on-surface-variant" />
                 )}
-                <span className="text-[10px] font-bold text-slate-500 uppercase">{msg.sender?.name}</span>
-                <span className="text-[9px] text-slate-600 font-mono">
+                <span className="text-[10px] font-bold text-on-surface-variant uppercase tracking-tighter">{msg.sender?.name}</span>
+                <span className="text-[9px] text-on-surface-variant/60 font-mono">
                   {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                 </span>
               </div>
               <div 
-                className={`max-w-[85%] px-4 py-2.5 rounded-2xl text-sm leading-relaxed transition-all ${
-                  msg.sender?._id === user.id
-                    ? 'bg-crisis-primary text-white rounded-tr-none shadow-lg shadow-crisis-primary/10'
-                    : 'bg-crisis-border/40 text-slate-200 border border-crisis-border/50 rounded-tl-none'
+                className={`max-w-[85%] px-4 py-2.5 rounded-2xl text-sm leading-relaxed transition-all shadow-sm ${
+                  msg.sender?._id === (user.id || user._id)
+                    ? 'bg-primary-container text-on-primary-container rounded-tr-none'
+                    : 'bg-surface-container-high text-on-surface border border-outline-variant/50 rounded-tl-none'
                 }`}
               >
                 {msg.content}
@@ -116,8 +116,7 @@ export default function ChatPanel({ taskId, missionTitle, isCompleted }) {
         )}
       </div>
 
-      {/* Input */}
-      <form onSubmit={handleSendMessage} className="p-4 border-t border-crisis-border bg-crisis-bg">
+      <form onSubmit={handleSendMessage} className="p-4 border-t border-outline-variant bg-surface-container-highest/20">
         <div className="relative group">
           <input
             type="text"
@@ -125,21 +124,16 @@ export default function ChatPanel({ taskId, missionTitle, isCompleted }) {
             onChange={(e) => setContent(e.target.value)}
             disabled={isCompleted}
             placeholder={isCompleted ? "Communication channel closed." : "Transmit tactical update..."}
-            className="w-full bg-crisis-border/20 border border-crisis-border rounded-xl py-3 pl-4 pr-12 text-sm text-white focus:outline-none focus:border-crisis-primary/50 transition-all disabled:opacity-50"
+            className="w-full bg-surface-container-highest/40 border border-outline-variant/30 rounded-xl py-3 pl-4 pr-12 text-sm text-on-surface focus:outline-none focus:border-primary/50 transition-all disabled:opacity-50"
           />
           <button
             type="submit"
             disabled={!content.trim() || isCompleted}
-            className="absolute right-2 top-1/2 -translate-y-1/2 p-2 text-crisis-glow hover:bg-crisis-primary/10 rounded-lg transition-colors disabled:opacity-30"
+            className="absolute right-2 top-1/2 -translate-y-1/2 p-2 text-primary hover:bg-primary/10 rounded-lg transition-colors disabled:opacity-30"
           >
             <Send className="w-5 h-5" />
           </button>
         </div>
-        {isCompleted && (
-          <p className="text-[9px] text-center text-slate-600 mt-2 font-bold uppercase tracking-widest">
-            History is preserved in mission logs
-          </p>
-        )}
       </form>
     </div>
   );

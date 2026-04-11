@@ -1,14 +1,30 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
+import useAuthStore from '../store/authStore';
+import toast from 'react-hot-toast';
 
 export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [showErrorModal, setShowErrorModal] = useState(false);
+  const [formData, setFormData] = useState({ name: '', zoneCode: '', password: '' });
+  
+  const { login, loading } = useAuthStore();
+  const navigate = useNavigate();
 
-  const handleSignIn = (e) => {
+  const handleSignIn = async (e) => {
     e.preventDefault();
-    // Simulate check: For now, we show the "Not Registered" error to fulfill the UX requirement
-    setShowErrorModal(true);
+    if (!formData.name || !formData.zoneCode || !formData.password) {
+      toast.error('Tactical credentials required.');
+      return;
+    }
+
+    const res = await login(formData);
+    if (res.success) {
+      toast.success('Authentication confirmed. Accessing dashboard.');
+      navigate('/');
+    } else {
+      setShowErrorModal(true);
+    }
   };
 
   return (
@@ -90,9 +106,12 @@ export default function Login() {
                 <input
                   className="peer w-full bg-surface-container-highest border-none rounded-lg p-4 pt-6 text-on-surface focus:ring-1 focus:ring-primary/30 transition-all placeholder-transparent outline-none"
                   id="full_name"
-                  name="full_name"
+                  name="name"
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   placeholder="Full Name"
                   type="text"
+                  required
                 />
                 <label
                   className="absolute left-4 top-2 text-xs font-semibold text-primary uppercase tracking-wider transition-all
@@ -109,9 +128,12 @@ export default function Login() {
                 <input
                   className="peer w-full bg-surface-container-highest border-none rounded-lg p-4 pt-6 font-mono text-on-surface focus:ring-1 focus:ring-primary/30 transition-all placeholder-transparent outline-none"
                   id="zone_code"
-                  name="zone_code"
+                  name="zoneCode"
+                  value={formData.zoneCode}
+                  onChange={(e) => setFormData({ ...formData, zoneCode: e.target.value })}
                   placeholder="Zone Code"
                   type="text"
+                  required
                 />
                 <label
                   className="absolute left-4 top-2 text-xs font-semibold text-primary uppercase tracking-wider transition-all
@@ -132,8 +154,11 @@ export default function Login() {
                   className="peer w-full bg-surface-container-highest border-none rounded-lg p-4 pt-6 text-on-surface focus:ring-1 focus:ring-primary/30 transition-all placeholder-transparent outline-none"
                   id="password"
                   name="password"
+                  value={formData.password}
+                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                   placeholder="Password"
                   type={showPassword ? 'text' : 'password'}
+                  required
                 />
                 <label
                   className="absolute left-4 top-2 text-xs font-semibold text-primary uppercase tracking-wider transition-all
@@ -176,10 +201,11 @@ export default function Login() {
               {/* CTA */}
               <button
                 type="submit"
-                className="w-full bg-primary-container text-on-primary-container font-headline font-bold py-4 rounded-lg shadow-lg hover:brightness-110 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+                disabled={loading}
+                className="w-full bg-primary-container text-on-primary-container font-headline font-bold py-4 rounded-lg shadow-lg hover:brightness-110 active:scale-[0.98] transition-all flex items-center justify-center gap-2 disabled:opacity-50"
               >
-                Sign In to Dashboard
-                <span className="material-symbols-outlined text-lg">arrow_forward</span>
+                {loading ? 'Validating Credentials...' : 'Sign In to Dashboard'}
+                {!loading && <span className="material-symbols-outlined text-lg">arrow_forward</span>}
               </button>
             </form>
 

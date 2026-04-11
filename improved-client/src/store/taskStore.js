@@ -20,8 +20,6 @@ const useTaskStore = create((set, get) => ({
   createTask: async (taskData) => {
     try {
       const { data } = await api.post('/tasks', taskData);
-      // We don't strictly need to set state here if we rely on socket broadcast,
-      // but it helps with optimistic UI or initial response.
       set((state) => ({ tasks: [data.data, ...state.tasks] }));
       return { success: true };
     } catch (err) {
@@ -62,8 +60,6 @@ const useTaskStore = create((set, get) => ({
       if (exists) {
         return { tasks: state.tasks.map((t) => (t._id === updatedTask._id ? updatedTask : t)) };
       } else {
-        // If it's a new task (task_created), prepend it
-        // Or handle specific priorities to keep critical at top
         const newTasks = [updatedTask, ...state.tasks];
         newTasks.sort((a, b) => {
           const priorityOrder = { Critical: 0, Medium: 1, Low: 2 };

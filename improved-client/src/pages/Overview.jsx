@@ -1,36 +1,58 @@
-import React from 'react';
-import { Link } from 'react-router-dom';
-
-const stats = [
-  { label: 'Active Zones', value: '12', icon: 'map', color: 'text-primary', bg: 'bg-primary/10', delta: '+2 this hour' },
-  { label: 'SOS Alerts', value: '47', icon: 'emergency', color: 'text-error', bg: 'bg-error/10', delta: '14 unresolved' },
-  { label: 'Volunteers Active', value: '247', icon: 'groups', color: 'text-secondary', bg: 'bg-secondary/10', delta: '98% on-duty' },
-  { label: 'Resources Deployed', value: '1,204', icon: 'inventory_2', color: 'text-tertiary', bg: 'bg-tertiary/10', delta: '82% utilized' },
-];
-
-const recentAlerts = [
-  { id: 'INC-9921', zone: 'ZONE-KA-01', title: 'Structural Collapse - MG Road', severity: 'Critical', time: '14:22', color: 'text-error', border: 'border-error' },
-  { id: 'INC-9918', zone: 'ZONE-TN-14', title: 'Power Outage - Indiranagar', severity: 'Warning', time: '13:45', color: 'text-tertiary-container', border: 'border-tertiary-container' },
-  { id: 'INC-9910', zone: 'ZONE-MH-44', title: 'Flooding - Dharavi East', severity: 'Critical', time: '13:01', color: 'text-error', border: 'border-error' },
-  { id: 'INC-9905', zone: 'ZONE-KL-09', title: 'Medical Supply Shortage', severity: 'Warning', time: '12:30', color: 'text-tertiary-container', border: 'border-tertiary-container' },
-];
-
-const activeZones = [
-  { id: 'ZONE-KA-01', name: 'Central Bengaluru', status: 'Critical', alerts: 42, fill: 'w-[85%]', barColor: 'bg-error' },
-  { id: 'ZONE-MH-44', name: 'Mumbai South', status: 'Critical', alerts: 56, fill: 'w-[92%]', barColor: 'bg-error' },
-  { id: 'ZONE-TN-14', name: 'North Chennai', status: 'Warning', alerts: 18, fill: 'w-[45%]', barColor: 'bg-tertiary-container' },
-  { id: 'ZONE-AP-05', name: 'Vijayawada East', status: 'Warning', alerts: 12, fill: 'w-[30%]', barColor: 'bg-tertiary-container' },
-  { id: 'ZONE-KL-09', name: 'Kochi Coastal', status: 'Stable', alerts: 2, fill: 'w-[8%]', barColor: 'bg-primary' },
-];
-
-const quickActions = [
-  { label: 'Dispatch Relief', icon: 'local_shipping', color: 'bg-primary-container text-on-primary-container', path: '/zone-map' },
-  { label: 'View Zone Map', icon: 'map', color: 'bg-secondary/10 text-secondary', path: '/zone-map' },
-  { label: 'Resource Inventory', icon: 'inventory_2', color: 'bg-tertiary/10 text-tertiary', path: '/resources' },
-  { label: 'Field Operations', icon: 'radar', color: 'bg-surface-container text-on-surface', path: '/volunteer' },
-];
+import useAlertStore from '../store/alertStore';
+import useTaskStore from '../store/taskStore';
+import useAuthStore from '../store/authStore';
+import { useEffect, useMemo } from 'react';
 
 export default function Overview() {
+  const { alerts, fetchAlerts } = useAlertStore();
+  const { tasks, fetchTasks } = useTaskStore();
+
+  useEffect(() => {
+    fetchAlerts();
+    fetchTasks();
+  }, [fetchAlerts, fetchTasks]);
+
+  const stats = useMemo(() => [
+    { label: 'Total Conflicts', value: alerts.length.toString(), icon: 'map', color: 'text-primary', bg: 'bg-primary/10', delta: 'Managed Zones' },
+    { label: 'SOS Alerts', value: alerts.filter(a => !a.isResolved).length.toString(), icon: 'emergency', color: 'text-error', bg: 'bg-error/10', delta: `${alerts.filter(a => a.severity === 'Critical').length} critical` },
+    { label: 'Active Missions', value: tasks.filter(t => t.status === 'Claimed').length.toString(), icon: 'groups', color: 'text-secondary', bg: 'bg-secondary/10', delta: 'Responders deployed' },
+    { label: 'Resolved', value: alerts.filter(a => a.isResolved).length.toString(), icon: 'inventory_2', color: 'text-tertiary', bg: 'bg-tertiary/10', delta: 'Operations complete' },
+  ], [alerts, tasks]);
+
+  const recentAlerts = useMemo(() => alerts.slice(0, 4).map(alert => ({
+    id: alert._id.slice(-6).toUpperCase(),
+    zone: alert.zoneCode,
+    title: 'Incoming Distress Signal',
+    message: alert.message,
+    severity: alert.severity,
+    time: new Date(alert.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+    color: alert.severity === 'Critical' ? 'text-error' : alert.severity === 'Medium' ? 'text-tertiary-container' : 'text-primary',
+    border: alert.severity === 'Critical' ? 'border-error' : alert.severity === 'Medium' ? 'border-tertiary-container' : 'border-primary'
+  })), [alerts]);
+
+  const zoneLoad = useMemo(() => {
+    const zones = {};
+    alerts.forEach(a => {
+      if (!zones[a.zoneCode]) zones[a.zoneCode] = { alerts: 0, critical: 0 };
+      zones[a.zoneCode].alerts++;
+      if (a.severity === 'Critical') zones[a.zoneCode].critical++;
+    });
+    return Object.entries(zones).map(([code, data]) => ({
+      id: code,
+      name: `Sector ${code.split('-')[1] || code}`,
+      status: data.critical > 0 ? 'Critical' : 'Stable',
+      alerts: data.alerts,
+      fill: `w-[${Math.min(100, (data.alerts / 10) * 100)}%]`,
+      barColor: data.critical > 0 ? 'bg-error' : 'bg-primary'
+    })).slice(0, 5);
+  }, [alerts]);
+
+  const quickActions = [
+    { label: 'Dispatch Relief', icon: 'local_shipping', color: 'bg-primary-container text-on-primary-container', path: '/zone-map' },
+    { label: 'View Zone Map', icon: 'map', color: 'bg-secondary/10 text-secondary', path: '/zone-map' },
+    { label: 'Resource Inventory', icon: 'inventory_2', color: 'bg-tertiary/10 text-tertiary', path: '/resources' },
+    { label: 'Field Operations', icon: 'volunteer', color: 'bg-surface-container text-on-surface', path: '/volunteer' },
+  ];
   return (
     <div className="flex-1 overflow-y-auto p-8 bg-[#050f19] space-y-8">
       {/* Page Header */}
@@ -95,9 +117,9 @@ export default function Overview() {
                     <span className="text-[10px] text-outline font-mono">• {alert.id}</span>
                     <span className="text-[10px] bg-surface-container-highest px-2 py-0.5 rounded font-mono text-outline uppercase">{alert.zone}</span>
                   </div>
-                  <p className="text-sm font-semibold text-on-surface">{alert.title}</p>
+                  <p className="text-sm font-semibold text-on-surface">{alert.message}</p>
                 </div>
-                <div className="text-[10px] font-mono text-outline shrink-0">{alert.time} PM</div>
+                <div className="text-[10px] font-mono text-outline shrink-0">{alert.time}</div>
               </div>
             ))}
           </div>
@@ -113,7 +135,7 @@ export default function Overview() {
             <Link to="/zone-map" className="text-xs text-primary hover:underline font-medium">Full Map →</Link>
           </div>
           <div className="space-y-3">
-            {activeZones.map((zone) => (
+            {zoneLoad.map((zone) => (
               <div key={zone.id} className="bg-surface-container-low rounded-xl p-4 border border-outline-variant/10">
                 <div className="flex justify-between items-center mb-2">
                   <div>
@@ -122,7 +144,6 @@ export default function Overview() {
                   </div>
                   <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
                     zone.status === 'Critical' ? 'bg-error/10 text-error' :
-                    zone.status === 'Warning' ? 'bg-tertiary-container/10 text-tertiary-container' :
                     'bg-primary/10 text-primary'
                   }`}>{zone.status}</span>
                 </div>
