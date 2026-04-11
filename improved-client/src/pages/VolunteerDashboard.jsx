@@ -5,6 +5,7 @@ import useTaskStore from '../store/taskStore';
 import { Link } from 'react-router-dom';
 import ChatPanel from '../components/ChatPanel';
 import toast from 'react-hot-toast';
+import LocationMap from "../components/LocationMap";
 
 export default function VolunteerDashboard() {
   const { user } = useAuthStore();
@@ -15,6 +16,9 @@ export default function VolunteerDashboard() {
   const [severity, setSeverity] = useState('Critical');
   const [loading, setLoading] = useState(false);
   const [activeChatTask, setActiveChatTask] = useState(null);
+  
+  const [gpsCoords, setGpsCoords] = useState(null);
+  const [gpsGranted, setGpsGranted] = useState(false);
 
   useEffect(() => {
     fetchAlerts();
@@ -25,7 +29,11 @@ export default function VolunteerDashboard() {
     e.preventDefault();
     if (!sosMessage) return;
     setLoading(true);
-    const res = await sendSOS({ message: sosMessage, severity });
+    // Attach GPS coordinates if available
+    const messageWithGPS = gpsCoords 
+      ? `${sosMessage} [GPS: ${gpsCoords.lat.toFixed(5)}, ${gpsCoords.lng.toFixed(5)}]` 
+      : sosMessage;
+    const res = await sendSOS({ message: messageWithGPS, severity });
     if (res.success) {
       toast.success('SOS Broadcasted. Help is coordinating.');
       setSosMessage('');
@@ -62,27 +70,50 @@ export default function VolunteerDashboard() {
     <div className="flex-1 grid grid-cols-12 gap-0 overflow-hidden bg-background">
       {/* Left Panel: Map & Logistics */}
       <section className="col-span-8 flex flex-col border-r border-outline-variant/10 overflow-hidden">
-        {/* Topographic Map */}
-        <div className="flex-1 relative bg-surface-container-lowest topo-bg overflow-hidden group">
-          <div className="absolute inset-0 bg-gradient-to-t from-surface-container-lowest via-transparent to-transparent opacity-60"></div>
-          {/* Coordinate Overlay */}
-          <div className="absolute bottom-6 left-6 flex flex-col gap-1 z-10">
+        {/* Topographic Map -> Live Leaflet Map */}
+        <div className="flex-1 relative bg-surface-container-lowest overflow-hidden group border-b border-outline-variant/10">
+          {!gpsGranted ? (
+            <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-surface/90 backdrop-blur-md gap-4 px-6 text-center">
+              <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center text-primary mb-2">
+                <span className="material-symbols-outlined text-4xl animate-pulse">location_searching</span>
+              </div>
+              <div>
+                <h3 className="text-lg font-headline font-bold text-on-surface mb-1">GPS SYNCHRONIZATION REQUIRED</h3>
+                <p className="text-xs text-on-surface-variant font-medium max-w-xs">
+                  Authorize tactical location services to enable real-time coordination and SOS tracking.
+                </p>
+              </div>
+              <button
+                onClick={() => setGpsGranted(true)}
+                className="mt-2 px-6 py-2.5 bg-primary text-on-primary font-bold rounded-lg hover:brightness-110 active:scale-95 transition-all flex items-center gap-2 text-xs uppercase tracking-widest"
+              >
+                <span className="material-symbols-outlined text-sm">gps_fixed</span>
+                Access GPS Feed
+              </button>
+            </div>
+          ) : (
+            <div className="absolute inset-0 z-0">
+              <LocationMap onPositionChange={(coords) => setGpsCoords(coords)} />
+            </div>
+          )}
+
+          {/* Coordinate Overlay - Moved to bottom-right to avoid HUD overlap */}
+          <div className="absolute bottom-6 right-6 flex flex-col gap-1 z-10 text-right items-end">
             <div className="bg-surface/80 backdrop-blur-md px-3 py-1.5 rounded-sm border border-outline-variant/20">
               <span className="text-[10px] font-mono text-primary uppercase tracking-widest block mb-0.5">Coordinates</span>
-              <code className="text-xs font-mono text-on-surface">34°02'21.2"N 118°14'37.1"W</code>
+              {gpsCoords ? (
+                <code className="text-xs font-mono text-on-surface">
+                  {gpsCoords.lat.toFixed(5)}°N {Math.abs(gpsCoords.lng).toFixed(5)}°E
+                </code>
+              ) : (
+                <code className="text-xs font-mono text-outline-variant italic">Awaiting Signal...</code>
+              )}
             </div>
             <div className="bg-surface/80 backdrop-blur-md px-3 py-1.5 rounded-sm border border-outline-variant/20">
-              <span className="text-[10px] font-mono text-secondary uppercase tracking-widest block mb-0.5">Elevation</span>
-              <code className="text-xs font-mono text-on-surface">1,242m ASL</code>
-            </div>
-          </div>
-          {/* Map Marker Visualization */}
-          <div className="absolute inset-0 flex items-center justify-center">
-            <div className="relative">
-              <div className="w-32 h-32 bg-primary/5 rounded-full border border-primary/20 animate-pulse"></div>
-              <div className="absolute inset-0 flex items-center justify-center">
-                <span className="material-symbols-outlined text-primary text-4xl" style={{ fontVariationSettings: "'FILL' 1" }}>location_on</span>
-              </div>
+              <span className="text-[10px] font-mono text-secondary uppercase tracking-widest block mb-0.5">Signal Quality</span>
+              <code className="text-xs font-mono text-on-surface">
+                {gpsCoords ? `±${Math.round(gpsCoords.accuracy)}m Precision` : 'NOT SYNCED'}
+              </code>
             </div>
           </div>
         </div>
